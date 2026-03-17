@@ -49,11 +49,13 @@ export interface Quotation {
   sessionId: string;
   vendorName: string;
   fileUrl: string;
-  status: "processing" | "analyzed" | "error";
+  status: "processing" | "analyzed" | "error" | "canceled";
   uploadedAt: number;
   parsedData: ParsedQuotationData | null;
   finalJsonReport: Record<string, any> | null;
   errorMessage?: string;
+  canceledAt?: number;
+  canceledReason?: string;
 }
 
 export interface ComplianceReport {
@@ -75,6 +77,7 @@ export interface ExtractionRequest {
   quoteId: string;
   fileUrl: string;
   baseRequirementsText: string;
+  targetCurrency: string;
 }
 
 export interface ExtractionResponse {

@@ -110,11 +110,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFDD0] font-mono text-black overflow-x-hidden">
-      <div className="w-full px-4 md:px-8 lg:px-12 max-w-[1600px] mx-auto py-4 md:py-8">
+    <div className="min-h-screen bg-[#FFFDD0] text-black font-mono p-4 md:p-8 lg:p-12 overflow-x-hidden">
+      <div className="max-w-[1600px] mx-auto flex flex-col gap-8 md:gap-12">
         {/* Header */}
-        <div className="flex justify-between items-start mb-8">
-          <div className="bg-white border-8 border-black p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
+          <div className="bg-white border-8 border-black p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] flex-1 w-full">
             <h1 className="text-4xl font-black uppercase tracking-tighter">
               DASHBOARD
             </h1>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
 
           <button
             onClick={handleSignOut}
-            className="bg-black text-white px-6 py-3 font-black uppercase border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+            className="px-4 md:px-6 py-3 font-black uppercase border-4 border-black bg-black text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-sm md:text-base whitespace-nowrap"
           >
             SIGN OUT
           </button>
@@ -134,25 +134,25 @@ export default function DashboardPage() {
         {/* Create New Session */}
         <form
           onSubmit={handleCreateSession}
-          className="bg-[#2D5A3D] border-4 border-black p-4 md:p-8 lg:p-12 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white mb-6 md:mb-8"
+          className="w-full bg-[#2D5A3D] border-4 border-black p-4 md:p-8 lg:p-12 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white"
         >
           <h2 className="text-3xl font-black uppercase mb-6 tracking-tighter">
             CREATE NEW SESSION
           </h2>
 
-          <div className="flex gap-4 mb-4">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-4">
             <input
               type="text"
               placeholder="Session Name (e.g., Server Rack Upgrade Q1 2026)"
               value={newSessionName}
               onChange={(e) => setNewSessionName(e.target.value)}
-              className="flex-1 p-4 border-4 border-black bg-white text-black font-bold focus:outline-none placeholder-gray-400"
+              className="flex-1 p-4 border-4 border-black bg-white text-black font-bold focus:outline-none placeholder-gray-400 text-sm md:text-base"
               required
             />
             <button
               type="submit"
               disabled={creatingSession || !newSessionName.trim()}
-              className="bg-white text-black px-8 py-4 font-black uppercase border-4 border-black hover:bg-yellow-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 md:px-8 py-4 font-black uppercase border-4 border-black bg-white text-black hover:bg-yellow-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base whitespace-nowrap"
             >
               {creatingSession ? "CREATING..." : "CREATE"}
             </button>
@@ -164,7 +164,7 @@ export default function DashboardPage() {
         </form>
 
         {/* Sessions Grid */}
-        <div>
+        <div className="w-full">
           <h2 className="text-2xl font-black uppercase mb-6 tracking-tighter">
             ACTIVE SESSIONS ({sessions.length})
           </h2>
@@ -181,33 +181,33 @@ export default function DashboardPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
               {sessions.map((session) => (
                 <div
                   key={session.id}
-                  className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer"
+                  className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer h-full"
                   onClick={() => router.push(`/session/${session.id}`)}
                 >
-                  <h3 className="text-base md:text-lg font-black uppercase tracking-tight mb-2">
+                  <h3 className="text-base md:text-lg font-black uppercase tracking-tight mb-3 line-clamp-2">
                     {session.title}
                   </h3>
 
-                  <div className="mb-4 space-y-1 text-sm font-bold">
-                    <p>Status: {session.status.toUpperCase()}</p>
+                  <div className="mb-4 space-y-2 text-sm font-bold">
+                    <p>Status: <span className="uppercase font-black">{session.status}</span></p>
                     <p>
                       Created:{" "}
                       {new Date(session.createdAt).toLocaleDateString()}
                     </p>
                     <p>
                       Base Req:{" "}
-                      {session.baseRequirements
-                        ? "✓ UPLOADED"
-                        : "→ PENDING"}
+                      <span className={session.baseRequirements ? "text-green-700 font-black" : "text-gray-600"}>
+                        {session.baseRequirements ? "✓ UPLOADED" : "→ PENDING"}
+                      </span>
                     </p>
                   </div>
 
                   <button
-                    className="w-full bg-black text-white py-3 font-black uppercase border-2 border-black hover:bg-white hover:text-black transition-all"
+                    className="w-full bg-black text-white py-3 font-black uppercase border-2 border-black hover:bg-white hover:text-black transition-all text-sm md:text-base"
                     onClick={(e) => {
                       e.stopPropagation();
                       router.push(`/session/${session.id}`);

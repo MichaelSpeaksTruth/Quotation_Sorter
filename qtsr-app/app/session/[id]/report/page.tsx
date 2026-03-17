@@ -18,6 +18,7 @@ export default function ReportPage() {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
   const [baseReqs, setBaseReqs] = useState<string[]>([]);
+  const [currentTime, setCurrentTime] = useState<string>("");
 
   // Check authentication
   useEffect(() => {
@@ -31,6 +32,26 @@ export default function ReportPage() {
 
     return () => unsubscribe();
   }, [router]);
+
+  // Real-time clock for open sessions
+  useEffect(() => {
+    if (session?.status === "open") {
+      const updateClock = () => {
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, "0");
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const year = now.getFullYear();
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        const seconds = String(now.getSeconds()).padStart(2, "0");
+        setCurrentTime(`${day}/${month}/${year} ${hours}:${minutes}:${seconds}`);
+      };
+
+      updateClock(); // Set immediately
+      const interval = setInterval(updateClock, 1000); // Update every second
+      return () => clearInterval(interval);
+    }
+  }, [session?.status]);
 
   // Load session
   useEffect(() => {
@@ -111,11 +132,11 @@ export default function ReportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFDD0] font-mono text-black overflow-hidden">
-      <div className="w-full px-4 md:px-8 lg:px-12 max-w-[1600px] mx-auto py-12 md:py-16 space-y-20 md:space-y-32">
-        {/* Header */}
-        <div className="flex justify-between items-start">
-          <div className="bg-white border-8 border-black p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+    <div className="min-h-screen bg-[#FFFDD0] text-black font-mono p-4 md:p-8 lg:p-12 overflow-x-hidden">
+      <div className="max-w-[1600px] mx-auto flex flex-col gap-6 md:gap-8">
+        {/* Header - Responsive Layout */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
+          <div className="bg-white border-8 border-black p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] flex-1 w-full">
             <h1 className="text-4xl font-black uppercase tracking-tighter">
               COMPLIANCE REPORT
             </h1>
@@ -126,20 +147,20 @@ export default function ReportPage() {
 
           <button
             onClick={() => router.push(`/session/${sessionId}`)}
-            className="bg-black text-white px-6 py-3 font-black uppercase border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+            className="px-4 md:px-6 py-3 font-black uppercase border-4 border-black bg-black text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-sm md:text-base whitespace-nowrap"
           >
             BACK TO WORKSPACE
           </button>
         </div>
 
         {/* Base Requirements Section */}
-        <div className="bg-white border-4 border-black p-4 md:p-6 lg:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-20">
-          <h2 className="text-xl font-black uppercase mb-4 tracking-tight">
+        <div className="w-full bg-white border-4 border-black p-4 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <h2 className="text-2xl font-black uppercase mb-4 tracking-tight">
             BASE REQUIREMENTS
           </h2>
 
           {baseReqs.length > 0 ? (
-            <div className="border-4 border-black p-4 bg-gray-50 max-h-48 overflow-y-auto">
+            <div className="border-2 border-black p-3 bg-gray-50 max-h-32 overflow-y-auto">
               <ul className="space-y-2">
                 {baseReqs.map((req, idx) => (
                   <li key={idx} className="text-sm font-bold flex gap-2">
@@ -150,7 +171,7 @@ export default function ReportPage() {
               </ul>
             </div>
           ) : (
-            <div className="border-4 border-black p-4 bg-yellow-200 font-bold text-sm">
+            <div className="border-2 border-black p-3 bg-yellow-200 font-bold text-sm">
               NO BASE REQUIREMENTS UPLOADED
             </div>
           )}
@@ -158,29 +179,29 @@ export default function ReportPage() {
 
         {/* Comparison Matrix */}
         {quotations.length > 0 ? (
-          <div className="mt-20 mb-20 overflow-x-auto border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <div className="mt-4 mb-4 overflow-x-auto border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
             <table className="w-full border-collapse bg-white">
               <thead>
                 <tr className="bg-black text-white">
-                  <th className="border-4 border-black p-4 font-black uppercase text-left text-sm">
+                  <th className="border-2 border-black p-2 font-black uppercase text-left text-xs">
                     VENDOR
                   </th>
-                  <th className="border-4 border-black p-4 font-black uppercase text-left text-sm">
+                  <th className="border-2 border-black p-2 font-black uppercase text-left text-xs">
                     TOTAL COST
                   </th>
-                  <th className="border-4 border-black p-4 font-black uppercase text-center text-sm">
+                  <th className="border-2 border-black p-2 font-black uppercase text-center text-xs">
                     COMPLIANCE %
                   </th>
-                  <th className="border-4 border-black p-4 font-black uppercase text-left text-sm">
+                  <th className="border-2 border-black p-2 font-black uppercase text-left text-xs">
                     MATCHED SPECS
                   </th>
-                  <th className="border-4 border-black p-4 font-black uppercase text-left text-sm">
+                  <th className="border-2 border-black p-2 font-black uppercase text-left text-xs">
                     MISSING SPECS
                   </th>
-                  <th className="border-4 border-black p-4 font-black uppercase text-left text-sm">
+                  <th className="border-2 border-black p-2 font-black uppercase text-left text-xs">
                     DELIVERY
                   </th>
-                  <th className="border-4 border-black p-4 font-black uppercase text-center text-sm">
+                  <th className="border-2 border-black p-2 font-black uppercase text-center text-xs">
                     RECOMMENDATION
                   </th>
                 </tr>
@@ -193,15 +214,15 @@ export default function ReportPage() {
                   const recommendation = report?.overallRecommendation || "N/A";
 
                   return (
-                    <tr key={quote.id} className="border-b-4 border-black">
-                      <td className="border-4 border-black p-4 font-black uppercase">
+                    <tr key={quote.id} className="border-b-2 border-black">
+                      <td className="border-2 border-black p-2 font-black uppercase text-xs">
                         {quote.vendorName}
                       </td>
-                      <td className="border-4 border-black p-4 font-bold">
-                        ${quote.parsedData?.totalCost?.toLocaleString() || "N/A"}
+                      <td className="border-2 border-black p-2 font-bold text-xs">
+                        {quote.finalJsonReport?.currency || "N/A"} {quote.parsedData?.totalCost?.toLocaleString() || "N/A"}
                       </td>
                       <td
-                        className={`border-4 border-black p-4 font-black text-center text-lg ${
+                        className={`border-2 border-black p-2 font-black text-center text-xs ${
                           (quote.parsedData?.complianceScore || 0) >= 80
                             ? "bg-green-300"
                             : (quote.parsedData?.complianceScore || 0) >= 50
@@ -211,8 +232,8 @@ export default function ReportPage() {
                       >
                         {quote.parsedData?.complianceScore || 0}%
                       </td>
-                      <td className="border-4 border-black p-4 font-bold text-sm">
-                        <div className="bg-green-200 border-2 border-black p-2 max-h-20 overflow-y-auto">
+                      <td className="border-2 border-black p-2 font-bold text-xs">
+                        <div className="bg-green-200 border-2 border-black p-1 max-h-12 overflow-y-auto">
                           {matched.length > 0 ? (
                             <ul className="space-y-1">
                               {matched.slice(0, 3).map((spec: string, idx: number) => (
@@ -231,8 +252,8 @@ export default function ReportPage() {
                           )}
                         </div>
                       </td>
-                      <td className="border-4 border-black p-4 font-bold text-sm">
-                        <div className="bg-red-200 border-2 border-black p-2 max-h-20 overflow-y-auto">
+                      <td className="border-2 border-black p-2 font-bold text-xs">
+                        <div className="bg-red-200 border-2 border-black p-1 max-h-12 overflow-y-auto">
                           {missing.length > 0 ? (
                             <ul className="space-y-1">
                               {missing.slice(0, 3).map((spec: string, idx: number) => (
@@ -251,11 +272,11 @@ export default function ReportPage() {
                           )}
                         </div>
                       </td>
-                      <td className="border-4 border-black p-4 font-bold text-sm">
+                      <td className="border-2 border-black p-2 font-bold text-xs">
                         {report?.deliveryTime || "N/A"}
                       </td>
                       <td
-                        className={`border-4 border-black p-4 font-black uppercase text-center text-sm ${getRecommendationColor(
+                        className={`border-2 border-black p-2 font-black uppercase text-center text-xs ${getRecommendationColor(
                           recommendation
                         )}`}
                       >
@@ -268,11 +289,11 @@ export default function ReportPage() {
             </table>
           </div>
         ) : (
-          <div className="bg-white border-4 border-black p-8 text-center mb-24">
-            <p className="font-black uppercase text-lg">
+          <div className="bg-white border-4 border-black p-8 text-center mb-6">
+            <p className="font-black uppercase text-base">
               NO ANALYZED QUOTATIONS YET
             </p>
-            <p className="text-sm font-bold mt-2">
+            <p className="text-sm font-bold mt-1">
               UPLOAD QUOTATIONS TO BEGIN ANALYSIS
             </p>
           </div>
@@ -280,7 +301,7 @@ export default function ReportPage() {
 
         {/* Detailed Reports */}
         {quotations.length > 0 && (
-          <div className="space-y-20 mt-20 mb-24">
+          <div className="space-y-8 mt-8 mb-8">
             <h2 className="text-2xl font-black uppercase tracking-tight">
               DETAILED ANALYSIS
             </h2>
@@ -291,14 +312,14 @@ export default function ReportPage() {
               return (
                 <div
                   key={quote.id}
-                  className="bg-white border-4 border-black p-4 md:p-6 lg:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+                  className="bg-white border-2 border-black p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-black uppercase">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-lg font-black uppercase">
                       {quote.vendorName}
                     </h3>
                     <span
-                      className={`px-4 py-2 font-black uppercase text-sm ${getRecommendationColor(
+                      className={`px-2 py-1 font-black uppercase text-xs ${getRecommendationColor(
                         report?.overallRecommendation
                       )}`}
                     >
@@ -314,7 +335,7 @@ export default function ReportPage() {
                     
                     return (
                       <div
-                        className={`mb-6 border-4 ${
+                        className={`mb-4 border-2 ${
                           hasPrecisionIssues
                             ? "border-red-600 bg-red-100"
                             : "border-green-600 bg-green-100"
@@ -372,38 +393,38 @@ export default function ReportPage() {
                   })()}
 
                   <div className="grid grid-cols-2 gap-6 mb-6">
-                    <div className="border-4 border-black p-4 bg-gray-50">
-                      <p className="text-sm font-black uppercase mb-2">
+                    <div className="border-2 border-black p-2 bg-gray-50">
+                      <p className="text-xs font-black uppercase mb-1">
                         Total Cost
                       </p>
-                      <p className="text-2xl font-black">
-                        ${quote.parsedData?.totalCost?.toLocaleString() || "N/A"}
+                      <p className="text-lg font-black">
+                        {quote.finalJsonReport?.currency || "N/A"} {quote.parsedData?.totalCost?.toLocaleString() || "N/A"}
                       </p>
                     </div>
 
-                    <div className="border-4 border-black p-4 bg-gray-50">
-                      <p className="text-sm font-black uppercase mb-2">
+                    <div className="border-2 border-black p-2 bg-gray-50">
+                      <p className="text-xs font-black uppercase mb-1">
                         Compliance Score
                       </p>
-                      <p className="text-2xl font-black">
+                      <p className="text-lg font-black">
                         {quote.parsedData?.complianceScore || 0}%
                       </p>
                     </div>
 
-                    <div className="border-4 border-black p-4 bg-gray-50">
-                      <p className="text-sm font-black uppercase mb-2">
+                    <div className="border-2 border-black p-2 bg-gray-50">
+                      <p className="text-xs font-black uppercase mb-1">
                         Delivery
                       </p>
-                      <p className="font-bold">
+                      <p className="font-bold text-xs">
                         {report?.deliveryTime || "Not specified"}
                       </p>
                     </div>
 
-                    <div className="border-4 border-black p-4 bg-gray-50">
-                      <p className="text-sm font-black uppercase mb-2">
+                    <div className="border-2 border-black p-2 bg-gray-50">
+                      <p className="text-xs font-black uppercase mb-1">
                         Certifications
                       </p>
-                      <p className="font-bold">
+                      <p className="font-bold text-xs">
                         {report?.certifications?.length
                           ? report.certifications.join(", ")
                           : "None listed"}
@@ -412,13 +433,13 @@ export default function ReportPage() {
                   </div>
 
                   {report?.criticalIssues?.length > 0 && (
-                    <div className="mb-6 border-4 border-red-600 bg-red-100 p-4">
-                      <p className="font-black uppercase text-sm mb-2">
+                    <div className="mb-3 border-2 border-red-600 bg-red-100 p-2">
+                      <p className="font-black uppercase text-xs mb-1">
                         Critical Issues
                       </p>
-                      <ul className="space-y-1">
+                      <ul className="space-y-0">
                         {report?.criticalIssues?.map((issue: string, idx: number) => (
-                          <li key={idx} className="text-sm font-bold">
+                          <li key={idx} className="text-xs font-bold">
                             • {issue}
                           </li>
                         ))}
@@ -427,15 +448,76 @@ export default function ReportPage() {
                   )}
 
                   {report?.validationNotes && (
-                    <div className="border-4 border-black p-4 bg-gray-50">
-                      <p className="text-sm font-black uppercase mb-2">
+                    <div className="border-2 border-black p-2 bg-gray-50 mb-3">
+                      <p className="text-xs font-black uppercase mb-1">
                         Validator Notes
                       </p>
-                      <p className="font-bold text-sm">
+                      <p className="font-bold text-xs">
                         {report.validationNotes}
                       </p>
                     </div>
                   )}
+
+                  {/* AI AUDIT & CONVERSION LOG */}
+                  <div className="border-2 border-black bg-white p-2 md:p-3 overflow-x-auto">
+                    <h4 className="text-sm font-black uppercase mb-2 pb-1 border-b-2 border-black">
+                      🔬 AI AUDIT & CONVERSION LOG
+                    </h4>
+
+                    {/* Unit Conversions */}
+                    {report?.unitConversions && report.unitConversions.length > 0 ? (
+                      <div className="mb-6">
+                        <p className="font-black text-sm uppercase mb-3 text-green-700">
+                          ✓ SUCCESSFUL CONVERSIONS ({report.unitConversions.length})
+                        </p>
+                        <div className="space-y-2">
+                          {report.unitConversions.map(
+                            (conversion: string, idx: number) => (
+                              <div
+                                key={idx}
+                                className="bg-green-100 border-2 border-green-600 p-3 font-mono text-xs md:text-sm"
+                              >
+                                <span className="font-black text-green-700">✔ PASS:</span>{" "}
+                                {conversion}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-6 bg-gray-100 border-2 border-gray-400 p-3 font-mono text-xs md:text-sm">
+                        <span className="text-gray-600">— No unit conversions required</span>
+                      </div>
+                    )}
+
+                    {/* Measurement Precision Errors */}
+                    {report?.measurementPrecisionErrors &&
+                    report.measurementPrecisionErrors.length > 0 ? (
+                      <div>
+                        <p className="font-black text-sm uppercase mb-3 text-white bg-red-600 p-2 border-2 border-red-800">
+                          ⚠ CRITICAL DEALBREAKER ({report.measurementPrecisionErrors.length})
+                        </p>
+                        <div className="space-y-2">
+                          {report.measurementPrecisionErrors.map(
+                            (error: string, idx: number) => (
+                              <div
+                                key={idx}
+                                className="bg-red-600 border-4 border-red-800 p-3 font-mono text-xs md:text-sm text-white font-black"
+                              >
+                                ✗ FAIL: {error}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-green-50 border-2 border-green-400 p-3 font-mono text-xs md:text-sm">
+                        <span className="text-green-700 font-bold">
+                          — No measurement precision errors detected
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -444,7 +526,7 @@ export default function ReportPage() {
 
         {/* Adjudication Results (if session is closed) */}
         {session?.status === "closed" && session?.adjudicationResult && (
-          <div className="space-y-6 mt-12 mb-12">
+          <div className="space-y-3 mt-6 mb-6">
             <div className="bg-[#2D5A3D] border-8 border-black p-4 md:p-8 lg:p-12 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] text-white">
               <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter mb-6">
                 FINAL ADJUDICATION & VENDOR RANKING
@@ -649,14 +731,14 @@ export default function ReportPage() {
 
         {/* Disclaimer Box */}
         <div
-          className="border-8 border-black bg-red-400 p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] mt-32 mb-20 pt-12"
+          className="border-4 border-black bg-red-400 p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
           role="alert"
         >
           <p className="text-2xl font-black uppercase mb-4 tracking-tighter">
             ⚠ CRITICAL DISCLAIMER
           </p>
 
-          <div className="space-y-4 text-black font-bold text-lg leading-tight">
+          <div className="space-y-3 text-black font-bold text-base leading-relaxed">
             <p>
               THIS ANALYSIS IS ALGORITHMICALLY GENERATED BY LARGE LANGUAGE MODELS
               (LLM) WITH MULTI-STAGE VALIDATION PIPELINE.
@@ -682,23 +764,34 @@ export default function ReportPage() {
           </div>
         </div>
 
-        {/* Spacer - 2 lines */}
-        <div className="h-16"></div>
-
         {/* Export/Print Footer */}
-        <div className="mt-24 mb-16 pt-20 border-t-4 border-black text-center">
+        <div className="flex flex-col items-center justify-center gap-6 mt-12 pb-12 w-full border-t-4 border-black pt-8">
           <button
             onClick={() => window.print()}
-            className="bg-black text-white px-8 py-4 font-black uppercase border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-lg mb-16"
+            className="bg-black text-white px-8 py-4 font-black uppercase border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:bg-white hover:text-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-xl"
           >
             PRINT REPORT
           </button>
 
-          {/* Spacer - 2 lines */}
-          <div className="h-16"></div>
-
-          <p className="text-xs font-bold opacity-70 pt-16">
-            Report generated: {new Date().toLocaleString()}
+          <p className="text-sm font-bold opacity-70">
+            {session?.status === "closed" && session?.adjudicatedAt ? (
+              <>
+                Report generated: {new Date(session.adjudicatedAt).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric"
+                })} {new Date(session.adjudicatedAt).toLocaleTimeString("en-GB", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: false
+                })}
+              </>
+            ) : (
+              <>
+                LIVE CLOCK: {currentTime || "Loading..."}
+              </>
+            )}
           </p>
         </div>
       </div>

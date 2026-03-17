@@ -304,6 +304,24 @@ export default function LoginPage() {
             </div>
           )}
         </div>
+
+        {/* Creator Credit - Fade In Animation */}
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          .animate-creditsFadeIn {
+            animation: fadeIn 2.5s ease-in 0.3s forwards;
+            opacity: 0;
+          }
+        `}</style>
+
+        <div className="fixed bottom-4 left-0 right-0 flex justify-center px-4">
+          <p className="font-mono text-xs text-black opacity-0 animate-creditsFadeIn">
+            Created by Anurag Kumar Verma [ BTECH/10173/24 ]
+          </p>
+        </div>
       </div>
     );
   }
@@ -385,6 +403,24 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Creator Credit - Fade In Animation */}
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          .animate-creditsFadeIn {
+            animation: fadeIn 2.5s ease-in 0.3s forwards;
+            opacity: 0;
+          }
+        `}</style>
+
+        <div className="fixed bottom-4 left-0 right-0 flex justify-center px-4">
+          <p className="font-mono text-xs text-black opacity-0 animate-creditsFadeIn">
+            Created by Anurag Kumar Verma [ BTECH/10173/24 ]
+          </p>
         </div>
       </div>
     );
@@ -502,6 +538,24 @@ export default function LoginPage() {
             </div>
           </form>
         </div>
+
+        {/* Creator Credit - Fade In Animation */}
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          .animate-creditsFadeIn {
+            animation: fadeIn 2.5s ease-in 0.3s forwards;
+            opacity: 0;
+          }
+        `}</style>
+
+        <div className="fixed bottom-4 left-0 right-0 flex justify-center px-4">
+          <p className="font-mono text-xs text-black opacity-0 animate-creditsFadeIn">
+            Created by Anurag Kumar Verma [ BTECH/10173/24 ]
+          </p>
+        </div>
       </div>
     );
   }
@@ -550,6 +604,24 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Creator Credit - Fade In Animation */}
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          .animate-creditsFadeIn {
+            animation: fadeIn 2.5s ease-in 0.3s forwards;
+            opacity: 0;
+          }
+        `}</style>
+
+        <div className="fixed bottom-4 left-0 right-0 flex justify-center px-4">
+          <p className="font-mono text-xs text-black opacity-0 animate-creditsFadeIn">
+            Created by Anurag Kumar Verma [ BTECH/10173/24 ]
+          </p>
         </div>
       </div>
     );
@@ -622,6 +694,24 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
+        </div>
+
+        {/* Creator Credit - Fade In Animation */}
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          .animate-creditsFadeIn {
+            animation: fadeIn 2.5s ease-in 0.3s forwards;
+            opacity: 0;
+          }
+        `}</style>
+
+        <div className="fixed bottom-4 left-0 right-0 flex justify-center px-4">
+          <p className="font-mono text-xs text-black opacity-0 animate-creditsFadeIn">
+            Created by Anurag Kumar Verma [ BTECH/10173/24 ]
+          </p>
         </div>
       </div>
     );

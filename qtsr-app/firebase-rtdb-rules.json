@@ -5,16 +5,16 @@
     
     "users": {
       "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid",
+        ".read": "$uid === auth.uid && auth.uid !== null",
+        ".write": "$uid === auth.uid && auth.uid !== null",
         ".validate": "newData.hasChildren(['email', 'createdAt'])"
       }
     },
     
     "sessions": {
       "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid",
+        ".read": "$uid === auth.uid && auth.uid !== null",
+        ".write": "$uid === auth.uid && auth.uid !== null",
         
         "$sessionId": {
           "title": {
@@ -41,14 +41,11 @@
     
     "quotations": {
       "$uid": {
-        ".read": "$uid === auth.uid",
-        ".write": "$uid === auth.uid",
+        ".read": "$uid === auth.uid && auth.uid !== null",
+        ".write": "$uid === auth.uid && auth.uid !== null",
         
         "$sessionId": {
           "$quoteId": {
-            ".read": true,
-            ".write": true,
-            
             "vendorName": {
               ".validate": "newData.isString()"
             },
@@ -56,10 +53,13 @@
               ".validate": "newData.isString()"
             },
             "status": {
-              ".validate": "newData.val() === 'processing' || newData.val() === 'analyzed' || newData.val() === 'error'"
+              ".validate": "newData.val() === 'processing' || newData.val() === 'analyzed' || newData.val() === 'error' || newData.val() === 'canceled'"
             },
             "uploadedAt": {
               ".validate": "newData.isNumber()"
+            },
+            "updatedAt": {
+              ".validate": "!newData.exists() || newData.isNumber()"
             },
             "parsedData": {
               ".validate": "!newData.exists() || newData.val() !== null"
@@ -70,7 +70,7 @@
             "precisionValidation": {
               ".validate": "!newData.exists() || newData.val() === 'PASS' || newData.val() === 'FAIL' || newData.val() === 'UNKNOWN'"
             },
-            "unitMismatches": {
+            "unitConversions": {
               ".validate": "!newData.exists() || newData.val() !== null"
             },
             "measurementPrecisionErrors": {
@@ -80,6 +80,15 @@
               ".validate": "!newData.exists() || newData.val() !== null"
             },
             "errorMessage": {
+              ".validate": "!newData.exists() || newData.isString()"
+            },
+            "errorAt": {
+              ".validate": "!newData.exists() || newData.isNumber()"
+            },
+            "canceledAt": {
+              ".validate": "!newData.exists() || newData.isNumber()"
+            },
+            "canceledReason": {
               ".validate": "!newData.exists() || newData.isString()"
             }
           }
