@@ -1,0 +1,90 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        ".validate": "newData.hasChildren(['email', 'createdAt'])"
+      }
+    },
+    
+    "sessions": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        
+        "$sessionId": {
+          "title": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "status": {
+            ".validate": "newData.val() === 'open' || newData.val() === 'closed'"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "baseRequirements": {
+            ".validate": "!newData.exists() || newData.val() !== null"
+          },
+          "adjudicationResult": {
+            ".validate": "!newData.exists() || newData.val() !== null"
+          },
+          "adjudicatedAt": {
+            ".validate": "!newData.exists() || newData.isNumber()"
+          }
+        }
+      }
+    },
+    
+    "quotations": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        
+        "$sessionId": {
+          "$quoteId": {
+            ".read": true,
+            ".write": true,
+            
+            "vendorName": {
+              ".validate": "newData.isString()"
+            },
+            "fileUrl": {
+              ".validate": "newData.isString()"
+            },
+            "status": {
+              ".validate": "newData.val() === 'processing' || newData.val() === 'analyzed' || newData.val() === 'error'"
+            },
+            "uploadedAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "parsedData": {
+              ".validate": "!newData.exists() || newData.val() !== null"
+            },
+            "finalJsonReport": {
+              ".validate": "!newData.exists() || newData.val() !== null"
+            },
+            "precisionValidation": {
+              ".validate": "!newData.exists() || newData.val() === 'PASS' || newData.val() === 'FAIL' || newData.val() === 'UNKNOWN'"
+            },
+            "unitMismatches": {
+              ".validate": "!newData.exists() || newData.val() !== null"
+            },
+            "measurementPrecisionErrors": {
+              ".validate": "!newData.exists() || newData.val() !== null"
+            },
+            "measurementComparisons": {
+              ".validate": "!newData.exists() || newData.val() !== null"
+            },
+            "errorMessage": {
+              ".validate": "!newData.exists() || newData.isString()"
+            }
+          }
+        }
+      }
+    }
+  }
+}
