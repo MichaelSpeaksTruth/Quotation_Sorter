@@ -11,8 +11,6 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-// @ts-expect-error - pdf-parse CommonJS module does not have proper ESM types
-import pdfParse from "pdf-parse";
 import {
   ExtractionRequest,
   ParsedQuotationData,
@@ -102,6 +100,9 @@ async function stagePdfParsing(base64Data: string, quoteId: string, fileKey: str
     if (isPDF) {
       console.log(`[File Parsing] PDF format detected. Parsing with pdfParse...`);
       try {
+        // Dynamic import to avoid Turbopack ESM resolution issues with CommonJS module
+        const pdfParseModule: any = await import("pdf-parse");
+        const pdfParse = pdfParseModule.default || pdfParseModule;
         const result = await pdfParse(fileBuffer);
         rawText = result.text?.trim() || "";
       } catch (pdfError) {
