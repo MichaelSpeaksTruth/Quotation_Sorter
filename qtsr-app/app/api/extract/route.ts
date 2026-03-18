@@ -11,15 +11,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { PDFParse } from "pdf-parse";
-import * as pdfjs from "pdfjs-dist";
+// @ts-expect-error - pdf-parse CommonJS module does not have proper ESM types
+import pdfParse from "pdf-parse";
 import {
   ExtractionRequest,
   ParsedQuotationData,
 } from "@/lib/types";
-
-// Disable PDF.js worker to avoid module resolution issues in server environment
-pdfjs.GlobalWorkerOptions.workerSrc = "";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
@@ -51,20 +48,30 @@ async function updateRTDB(path: string, data: Record<string, any>, idToken: stri
 
 /**
  * STAGE 1: FILE PARSING FROM BASE64 DATA (RTDB)
- * Convert base64 encoded file to Buffer and extract raw text
- * Supports PDF and text formats
+ * Convert base64 encoded file to Buffer and extract text or preserve as image
+ * Supports PDF, image, and text formats
  *
- * INPUT: Base64 encoded file data from RTDB, quoteId for logging
- * OUTPUT: Raw text extracted from file
+ * INPUT: Base64 encoded file data from RTDB (with optional mimeType in data URI), quoteId for logging
+ * OUTPUT: Structured object with type identification: {type: "text", text?: string} | {type: "image", mimeType: string, data: string}
  */
-async function stagePdfParsing(base64Data: string, quoteId: string, fileKey: string): Promise<string> {
+async function stagePdfParsing(base64Data: string, quoteId: string, fileKey: string): Promise<Record<string, any>> {
   try {
     console.log(`[File Parsing] Decoding base64 data from RTDB...`);
 
-    // Extract base64 string from data URI format (data:application/...;base64,...)
+    // Extract mimeType and base64 string from data URI format (data:application/...;base64,...)
+    let mimeType = "application/pdf";
     let base64String = base64Data;
+    
     if (base64Data.includes("base64,")) {
-      base64String = base64Data.split("base64,")[1];
+      const parts = base64Data.split("base64,");
+      base64String = parts[1];
+      
+      // Extract mimeType from the URI prefix
+      const uriPrefix = parts[0]; // e.g., "data:image/jpeg;"
+      const mimeMatch = uriPrefix.match(/data:([^;]+);/);
+      if (mimeMatch && mimeMatch[1]) {
+        mimeType = mimeMatch[1];
+      }
     }
 
     // Convert base64 to buffer
@@ -74,21 +81,29 @@ async function stagePdfParsing(base64Data: string, quoteId: string, fileKey: str
       throw new Error("Base64 decoded to empty buffer (0 bytes)");
     }
 
-    console.log(`[File Parsing] Parsing file buffer (${fileBuffer.length} bytes)...`);
+    console.log(`[File Parsing] Detected MIME type: ${mimeType} | Buffer size: ${fileBuffer.length} bytes`);
 
-    let rawText = "";
+    // If it's an image, return structured object WITHOUT parsing to text
+    if (mimeType.startsWith("image/")) {
+      console.log(`[File Parsing] Image format detected (${mimeType}). Preserving as binary data for Gemini Vision...`);
+      return {
+        type: "image",
+        mimeType: mimeType,
+        data: base64String,
+      };
+    }
 
-    // Try to detect file type and parse accordingly
+    // Try to detect file type and parse accordingly for PDF/text
     const fileTypeSig = fileBuffer.slice(0, 4).toString("hex");
     const isPDF = fileTypeSig.startsWith("25504446"); // %PDF signature
 
+    let rawText = "";
+
     if (isPDF) {
-      console.log(`[File Parsing] Detected PDF format, using PDF parser...`);
+      console.log(`[File Parsing] PDF format detected. Parsing with pdfParse...`);
       try {
-        const parser = new PDFParse({ data: fileBuffer });
-        const result = await parser.getText();
+        const result = await pdfParse(fileBuffer);
         rawText = result.text?.trim() || "";
-        await parser.destroy();
       } catch (pdfError) {
         console.error(`[File Parsing] PDF parsing failed:`, pdfError);
         // Fall back to treating as text
@@ -101,7 +116,7 @@ async function stagePdfParsing(base64Data: string, quoteId: string, fileKey: str
       }
     } else {
       // Try to read as text file
-      console.log(`[File Parsing] Detected text format, parsing as UTF-8...`);
+      console.log(`[File Parsing] Text format detected. Parsing as UTF-8...`);
       rawText = fileBuffer.toString("utf-8").trim();
     }
 
@@ -110,7 +125,10 @@ async function stagePdfParsing(base64Data: string, quoteId: string, fileKey: str
     }
 
     console.log(`[File Parsing] Extracted ${rawText.length} characters from file`);
-    return rawText;
+    return {
+      type: "text",
+      text: rawText,
+    };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
     console.error(
@@ -227,12 +245,13 @@ function sanitizeJSON(jsonStr: string): string {
  * Use Gemini with temperature: 0 (ZERO CREATIVITY) and responseMimeType: application/json
  * Performs literal extraction AND validation against base requirements simultaneously
  * Leverages Gemini 3.1 Flash Lite's massive context window to halve latency
+ * Supports both text-based quotations and images via Gemini Vision
  *
- * INPUT: Raw PDF text, Base Requirements, quoteId, fileKey for logging
+ * INPUT: Parsed quotation object (text or image), Base Requirements, quoteId, fileKey for logging
  * OUTPUT: Complete analysis with compliance score, matched requirements, conversions, and recommendation
  */
 async function stageGeminiDirectAnalysis(
-  pdfText: string,
+  parsedQuotation: Record<string, any>,
   baseRequirementsText: string,
   quoteId: string,
   fileKey: string,
@@ -240,29 +259,36 @@ async function stageGeminiDirectAnalysis(
 ): Promise<Record<string, any>> {
   try {
     console.log(`[Gemini Direct Analysis] Starting unified Gemini ${GEMINI_MODEL} analysis (temperature: 0)...`);
+    console.log(`[Gemini Direct Analysis] Quotation type: ${parsedQuotation.type}${parsedQuotation.type === "image" ? ` (${parsedQuotation.mimeType})` : ""}...`);
 
     if (!GEMINI_API_KEY) {
       throw new Error("GEMINI_API_KEY environment variable not set");
     }
 
-    const requestBody = {
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `You are a STRICT procurement adjudicator and merciless literal data auditor. Your job is BOTH:
+    // Dynamically build the parts array based on quotation type
+    let initialPrompt = `You are a STRICT procurement adjudicator and merciless literal data auditor. Your job is BOTH:
 1. Extract EXACTLY what is written in the vendor quotation (no hallucination, no inference)
 2. Validate the extracted data against the base requirements with mathematical precision
 
 BASE REQUIREMENTS:
 ${baseRequirementsText}
 
-VENDOR QUOTATION:
-${pdfText}
+`;
+    
+    if (parsedQuotation.type === "text") {
+      initialPrompt += `VENDOR QUOTATION:\n${parsedQuotation.text}`;
+    } else {
+      initialPrompt += `VENDOR QUOTATION IMAGE attached below (analyze and extract data from image):`;
+    }
+    
+    initialPrompt += `
 
-CRITICAL ANTI-HALLUCINATION RULES:
-1. EXTRACT ONLY information explicitly written in the quotation text.
+CRITICAL ANTI-HALLUCINATION RULES:`;
+    
+    const parts: Record<string, any>[] = [
+      {
+        text: initialPrompt + `
+1. EXTRACT ONLY information explicitly written in the quotation (text or image).
 2. DO NOT infer, guess, calculate, or assume missing information.
 3. DO NOT hallucinate prices, specifications, or measurements.
 4. If a value is NOT explicitly stated, write "NOT_EXPLICITLY_STATED".
@@ -327,8 +353,25 @@ RETURN THIS JSON STRUCTURE (valid JSON only):
 }
 
 CRITICAL: Your response MUST be valid JSON. Start with { and end with }. No markdown. JSON ONLY.`,
-            },
-          ],
+      },
+    ];
+
+    // If quotation is an image, append the image data to the parts array
+    if (parsedQuotation.type === "image") {
+      parts.push({
+        inlineData: {
+          mimeType: parsedQuotation.mimeType,
+          data: parsedQuotation.data,
+        },
+      });
+      console.log(`[Gemini Direct Analysis] Image appended to request (${parsedQuotation.mimeType}, ${parsedQuotation.data.length} chars base64)`);
+    }
+
+    const requestBody = {
+      contents: [
+        {
+          role: "user",
+          parts: parts,
         },
       ],
       generationConfig: {
@@ -503,13 +546,13 @@ export async function POST(request: NextRequest) {
     await updateRTDB(`quotations/${userId}/${sessionId}/${quoteId}`, { status: "processing" }, idToken);
 
     // ===== STAGE 1: FILE PARSING =====
-    console.log(`[${quoteId}] STAGE 1: File Parsing from base64 data (supports PDF and TXT)...`);
-    const pdfText = await stagePdfParsing(fileUrl, quoteId, fileKey);
+    console.log(`[${quoteId}] STAGE 1: File Parsing from base64 data (supports PDF, Images, and TXT)...`);
+    const parsedQuotation = await stagePdfParsing(fileUrl, quoteId, fileKey);
 
     // ===== STAGE 2-3 (UNIFIED): GEMINI DIRECT ANALYSIS (Extract + Validate in One Pass) =====
     console.log(`[${quoteId}] STAGE 2-3: Gemini Direct Analysis (temperature: 0, unified extraction+validation)...`);
     const geminiResult = await stageGeminiDirectAnalysis(
-      pdfText,
+      parsedQuotation,
       baseRequirementsText,
       quoteId,
       fileKey,
