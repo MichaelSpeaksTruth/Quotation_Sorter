@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import {
   SessionData,
+  AuditEvent,
   getActiveSessions,
   logoutSession,
   logoutAllSessions,
@@ -54,7 +55,7 @@ export default function ProfilePage() {
 
   // Real data from Firebase
   const [activeSessions, setActiveSessions] = useState<SessionData[]>([]);
-  const [loginActivity, setLoginActivity] = useState<any[]>([]);
+  const [loginActivity, setLoginActivity] = useState<AuditEvent[]>([]);
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings | null>(
     null
   );
@@ -132,7 +133,7 @@ export default function ProfilePage() {
       await updatePassword(user, newPassword);
 
       // Log the password change to audit trail
-      const { device, browser, os } = getDeviceInfo();
+      const { browser, os } = getDeviceInfo();
       const { ip: ipAddress } = await getIPAddressAndLocation();
       await logPasswordChange(
         user.uid,
@@ -531,13 +532,13 @@ export default function ProfilePage() {
                 {loginActivity && loginActivity.length > 0 ? (
                   loginActivity
                     .filter(
-                      (e: any) =>
+                      (e: AuditEvent) =>
                         e.type === "PASSWORD_CHANGE" ||
                         e.type === "2FA_ENABLED" ||
                         e.type === "2FA_DISABLED"
                     )
                     .slice(0, 5)
-                    .map((event: any) => (
+                    .map((event: AuditEvent) => (
                       <div
                         key={event.id}
                         className="border-l-4 border-[#2D5A3D] pl-3 pb-3 border-b last:border-b-0"
@@ -631,8 +632,8 @@ export default function ProfilePage() {
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {loginActivity && loginActivity.length > 0 ? (
                   loginActivity
-                    .filter((e: any) => e.type === "LOGIN")
-                    .map((activity: any) => (
+                    .filter((e: AuditEvent) => e.type === "LOGIN")
+                    .map((activity: AuditEvent) => (
                       <div
                         key={activity.id}
                         className="border-l-4 border-black pl-3 pb-3 border-b last:border-b-0"
