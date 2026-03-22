@@ -648,7 +648,7 @@ export default function ProfilePage() {
                           </span>
                         </div>
                         <p className="text-xs font-bold mb-1">
-                          {activity.device} • {activity.browser}
+                          {activity.device}
                         </p>
                         <p className="text-xs opacity-70">
                           {formatRelativeTime(activity.timestamp)} ·{" "}
