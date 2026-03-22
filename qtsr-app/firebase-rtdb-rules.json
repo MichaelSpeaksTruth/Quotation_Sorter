@@ -6,8 +6,7 @@
     "users": {
       "$uid": {
         ".read": "$uid === auth.uid && auth.uid !== null",
-        ".write": "$uid === auth.uid && auth.uid !== null",
-        ".validate": "newData.hasChildren(['email', 'createdAt'])"
+        ".write": "$uid === auth.uid && auth.uid !== null"
       }
     },
     
@@ -15,25 +14,57 @@
       "$uid": {
         ".read": "$uid === auth.uid && auth.uid !== null",
         ".write": "$uid === auth.uid && auth.uid !== null",
-        
         "$sessionId": {
-          "title": {
-            ".validate": "newData.isString() && newData.val().length > 0"
+          ".read": "$uid === auth.uid && auth.uid !== null",
+          ".write": "$uid === auth.uid && auth.uid !== null"
+        }
+      },
+      "users": {
+        "$uid": {
+          "active": {
+            ".read": "$uid === auth.uid && auth.uid !== null",
+            ".write": "$uid === auth.uid && auth.uid !== null",
+            "$sessionId": {
+              ".read": "$uid === auth.uid && auth.uid !== null",
+              ".write": "$uid === auth.uid && auth.uid !== null",
+              ".validate": "newData.hasChildren(['id', 'userId', 'device', 'browser', 'os', 'ipAddress', 'location', 'createdAt', 'lastActiveAt'])"
+            }
+          }
+        }
+      }
+    },
+    
+    "audit": {
+      "users": {
+        "$uid": {
+          "events": {
+            ".read": "$uid === auth.uid && auth.uid !== null",
+            ".write": "$uid === auth.uid && auth.uid !== null",
+            "$eventId": {
+              ".read": "$uid === auth.uid && auth.uid !== null",
+              ".write": "$uid === auth.uid && auth.uid !== null",
+              ".validate": "newData.hasChildren(['id', 'userId', 'type', 'ipAddress', 'device', 'location', 'timestamp', 'status'])"
+            }
+          }
+        }
+      }
+    },
+    
+    "security": {
+      "users": {
+        "$uid": {
+          "settings": {
+            ".read": "$uid === auth.uid && auth.uid !== null",
+            ".write": "$uid === auth.uid && auth.uid !== null",
+            ".validate": "newData.hasChildren(['userId', 'twoFactorEnabled', 'lastPasswordChange'])"
           },
-          "status": {
-            ".validate": "newData.val() === 'open' || newData.val() === 'closed'"
-          },
-          "createdAt": {
-            ".validate": "newData.isNumber()"
-          },
-          "baseRequirements": {
-            ".validate": "!newData.exists() || newData.val() !== null"
-          },
-          "adjudicationResult": {
-            ".validate": "!newData.exists() || newData.val() !== null"
-          },
-          "adjudicatedAt": {
-            ".validate": "!newData.exists() || newData.isNumber()"
+          "events": {
+            ".read": "$uid === auth.uid && auth.uid !== null",
+            ".write": "$uid === auth.uid && auth.uid !== null",
+            "$eventId": {
+              ".read": "$uid === auth.uid && auth.uid !== null",
+              ".write": "$uid === auth.uid && auth.uid !== null"
+            }
           }
         }
       }

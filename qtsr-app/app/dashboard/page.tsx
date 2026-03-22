@@ -4,8 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth, rtdb } from "@/lib/firebase";
 import { ref, onValue, push, set } from "firebase/database";
-import { signOut, onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { Session } from "@/lib/types";
+import HamburgerMenu from "@/app/components/HamburgerMenu";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -92,15 +93,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      router.push("/login");
-    } catch (error) {
-      console.error("Sign out error:", error);
-    }
-  };
-
   if (!user) {
     return (
       <div className="min-h-screen bg-[#FFFDD0] flex items-center justify-center">
@@ -123,12 +115,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <button
-            onClick={handleSignOut}
-            className="px-4 md:px-6 py-3 font-black uppercase border-4 border-black bg-black text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-sm md:text-base whitespace-nowrap"
-          >
-            SIGN OUT
-          </button>
+          <HamburgerMenu userEmail={user.email || ""} />
         </div>
 
         {/* Create New Session */}

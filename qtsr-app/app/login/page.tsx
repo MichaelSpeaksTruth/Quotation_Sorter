@@ -5,6 +5,8 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithP
 import { ref, set, get } from 'firebase/database';
 import { auth, rtdb } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { createSession } from '@/lib/sessionService';
+import { logAuditEvent } from '@/lib/sessionService';
 
 export default function LoginPage() {
   // Auth mode selection
@@ -99,6 +101,21 @@ export default function LoginPage() {
         createdAt: new Date().toISOString(),
       });
 
+      // Create session for new user
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await createSession(user, sessionId);
+
+      // Log audit event
+      await logAuditEvent(user.uid, {
+        type: "LOGIN",
+        ipAddress: "0.0.0.0",
+        device: "Google OAuth",
+        location: "Web",
+        timestamp: Date.now(),
+        status: "success",
+        details: "User signed up with Google",
+      });
+
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Google sign up failed');
@@ -141,6 +158,21 @@ export default function LoginPage() {
         institute: institute,
         authMethod: 'email',
         createdAt: new Date().toISOString(),
+      });
+
+      // Create session for new user
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await createSession(user, sessionId);
+
+      // Log audit event
+      await logAuditEvent(user.uid, {
+        type: "LOGIN",
+        ipAddress: "0.0.0.0",
+        device: "Email",
+        location: "Web",
+        timestamp: Date.now(),
+        status: "success",
+        details: "User signed up with email and password",
       });
 
       router.push('/dashboard');
@@ -210,7 +242,24 @@ export default function LoginPage() {
       }
 
       // Sign in with email/password
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const user = result.user;
+
+      // Create session for signed-in user
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await createSession(user, sessionId);
+
+      // Log audit event
+      await logAuditEvent(user.uid, {
+        type: "LOGIN",
+        ipAddress: "0.0.0.0",
+        device: "Email",
+        location: "Web",
+        timestamp: Date.now(),
+        status: "success",
+        details: "User signed in with email and password",
+      });
+
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Sign in failed');
