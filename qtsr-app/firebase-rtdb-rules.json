@@ -40,6 +40,7 @@
           "events": {
             ".read": "$uid === auth.uid && auth.uid !== null",
             ".write": "$uid === auth.uid && auth.uid !== null",
+            ".indexOn": ["timestamp"],
             "$eventId": {
               ".read": "$uid === auth.uid && auth.uid !== null",
               ".write": "$uid === auth.uid && auth.uid !== null",
