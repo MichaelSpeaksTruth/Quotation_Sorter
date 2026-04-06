@@ -5,8 +5,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithP
 import { ref, set, get } from 'firebase/database';
 import { auth, rtdb } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { createSession } from '@/lib/sessionService';
-import { logAuditEvent } from '@/lib/sessionService';
+import { createSession, getDeviceInfo, getIPAddressAndLocation, logAuditEvent } from '@/lib/sessionService';
 
 export default function LoginPage() {
   // Auth mode selection
@@ -101,23 +100,33 @@ export default function LoginPage() {
         createdAt: new Date().toISOString(),
       });
 
-      // Create session for new user
+      // Collect real device info and geolocation  
+      const { device, browser, os } = getDeviceInfo();
+      const { ip: ipAddress, location } = await getIPAddressAndLocation(true);
+
+      // Create session with proper device and location info
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       await createSession(user, sessionId);
 
-      // Log audit event
+      // Store current session ID in localStorage for heartbeat tracking
+      localStorage.setItem("currentSessionId", sessionId);
+      console.log(`[LOGIN] Stored current session ID: ${sessionId}`);
+
+      // Log audit event with collected info
       await logAuditEvent(user.uid, {
         type: "LOGIN",
-        ipAddress: "0.0.0.0",
-        device: "Google OAuth",
-        location: "Web",
+        ipAddress: ipAddress,
+        device: `${os} - ${browser}`,
+        location: location,
         timestamp: Date.now(),
         status: "success",
         details: "User signed up with Google",
       });
 
+      console.log(`[LOGIN] Google signup successful for ${user.email}`);
       router.push('/dashboard');
     } catch (err: any) {
+      console.error('[LOGIN] Google signup error:', err);
       setError(err.message || 'Google sign up failed');
     } finally {
       setLoading(false);
@@ -160,23 +169,33 @@ export default function LoginPage() {
         createdAt: new Date().toISOString(),
       });
 
+      // Collect real device info and geolocation
+      const { device, browser, os } = getDeviceInfo();
+      const { ip: ipAddress, location } = await getIPAddressAndLocation(true);
+
       // Create session for new user
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       await createSession(user, sessionId);
 
-      // Log audit event
+      // Store current session ID in localStorage for heartbeat tracking
+      localStorage.setItem("currentSessionId", sessionId);
+      console.log(`[LOGIN] Stored current session ID: ${sessionId}`);
+
+      // Log audit event with collected info
       await logAuditEvent(user.uid, {
         type: "LOGIN",
-        ipAddress: "0.0.0.0",
-        device: "Email",
-        location: "Web",
+        ipAddress: ipAddress,
+        device: `${os} - ${browser}`,
+        location: location,
         timestamp: Date.now(),
         status: "success",
         details: "User signed up with email and password",
       });
 
+      console.log(`[LOGIN] Email signup successful for ${user.email}`);
       router.push('/dashboard');
     } catch (err: any) {
+      console.error('[LOGIN] Email signup error:', err);
       setError(err.message || 'Sign up failed');
     } finally {
       setLoading(false);
@@ -202,8 +221,33 @@ export default function LoginPage() {
         return;
       }
 
+      // Collect real device info and geolocation
+      const { device, browser, os } = getDeviceInfo();
+      const { ip: ipAddress, location } = await getIPAddressAndLocation(true);
+
+      // Create session for signed-in user
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await createSession(user, sessionId);
+
+      // Store current session ID in localStorage for heartbeat tracking
+      localStorage.setItem("currentSessionId", sessionId);
+      console.log(`[LOGIN] Stored current session ID: ${sessionId}`);
+
+      // Log audit event with collected info
+      await logAuditEvent(user.uid, {
+        type: "LOGIN",
+        ipAddress: ipAddress,
+        device: `${os} - ${browser}`,
+        location: location,
+        timestamp: Date.now(),
+        status: "success",
+        details: "User signed in with Google",
+      });
+
+      console.log(`[LOGIN] Google signin successful for ${user.email}`);
       router.push('/dashboard');
     } catch (err: any) {
+      console.error('[LOGIN] Google signin error:', err);
       setError(err.message || 'Google sign in failed');
     } finally {
       setLoading(false);
@@ -245,23 +289,33 @@ export default function LoginPage() {
       const result = await signInWithEmailAndPassword(auth, email, password);
       const user = result.user;
 
+      // Collect real device info and geolocation
+      const { device, browser, os } = getDeviceInfo();
+      const { ip: ipAddress, location } = await getIPAddressAndLocation(true);
+
       // Create session for signed-in user
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       await createSession(user, sessionId);
 
-      // Log audit event
+      // Store current session ID in localStorage for heartbeat tracking
+      localStorage.setItem("currentSessionId", sessionId);
+      console.log(`[LOGIN] Stored current session ID: ${sessionId}`);
+
+      // Log audit event with collected info
       await logAuditEvent(user.uid, {
         type: "LOGIN",
-        ipAddress: "0.0.0.0",
-        device: "Email",
-        location: "Web",
+        ipAddress: ipAddress,
+        device: `${os} - ${browser}`,
+        location: location,
         timestamp: Date.now(),
         status: "success",
         details: "User signed in with email and password",
       });
 
+      console.log(`[LOGIN] Email signin successful for ${user.email}`);
       router.push('/dashboard');
     } catch (err: any) {
+      console.error('[LOGIN] Email signin error:', err);
       setError(err.message || 'Sign in failed');
     } finally {
       setLoading(false);

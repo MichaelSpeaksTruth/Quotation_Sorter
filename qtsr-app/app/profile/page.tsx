@@ -16,19 +16,22 @@ import {
 import Link from "next/link";
 import {
   SessionData,
+  PastSessionData,
   AuditEvent,
   getActiveSessions,
+  getPastSessions,
   logoutSession,
   logoutAllSessions,
   getLoginHistory,
   getDeviceInfo,
   getIPAddressAndLocation,
+  formatDuration,
+  formatTimestamp,
+  getRelativeTime,
 } from "@/lib/sessionService";
+import { useSessionHeartbeat } from "@/lib/useSessionHeartbeat";
 import {
   SecuritySettings,
-  getSecuritySettings,
-  enable2FA,
-  disable2FA,
   logPasswordChange,
 } from "@/lib/securityService";
 
@@ -55,13 +58,9 @@ export default function ProfilePage() {
 
   // Real data from Firebase
   const [activeSessions, setActiveSessions] = useState<SessionData[]>([]);
+  const [pastSessions, setPastSessions] = useState<PastSessionData[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | undefined>();
   const [loginActivity, setLoginActivity] = useState<AuditEvent[]>([]);
-  const [securitySettings, setSecuritySettings] = useState<SecuritySettings | null>(
-    null
-  );
-  const [isEnabling2FA, setIsEnabling2FA] = useState(false);
-  const [showBackupCodes, setShowBackupCodes] = useState(false);
-  const [backupCodes, setBackupCodes] = useState<string[]>([]);
 
   // Check authentication and load data
   useEffect(() => {
@@ -72,18 +71,37 @@ export default function ProfilePage() {
         setUser(currentUser);
         setDisplayName(currentUser.displayName || "");
 
+        // Get current session ID from localStorage
+        const sessionId = localStorage.getItem("currentSessionId");
+        if (sessionId) {
+          setCurrentSessionId(sessionId);
+          console.log(`[PROFILE] Current session ID from storage: ${sessionId}`);
+        }
+
         // Fetch sessions and security data
         try {
+          console.log(`[PROFILE] Loading data for user ${currentUser.uid}...`);
+          
           const sessions = await getActiveSessions(currentUser.uid);
-          setActiveSessions(sessions);
+          console.log(`[PROFILE] Found ${sessions.length} active sessions`);
+          setActiveSessions(sessions || []);
 
-          const auditHistory = await getLoginHistory(currentUser.uid, 10);
-          setLoginActivity(auditHistory);
+          // If no session ID from storage, use the first active session as current
+          if (!sessionId && sessions && sessions.length > 0) {
+            setCurrentSessionId(sessions[0].id);
+            localStorage.setItem("currentSessionId", sessions[0].id);
+          }
 
-          const settings = await getSecuritySettings(currentUser.uid);
-          setSecuritySettings(settings);
+          const past = await getPastSessions(currentUser.uid, 10);
+          console.log(`[PROFILE] Found ${past.length} past sessions`);
+          setPastSessions(past || []);
+
+          const auditHistory = await getLoginHistory(currentUser.uid, 5);
+          console.log(`[PROFILE] Found ${auditHistory.length} recent logins`);
+          setLoginActivity(auditHistory || []);
         } catch (error) {
-          console.error("Error loading profile data:", error);
+          console.error("[PROFILE] Error loading profile data:", error);
+          alert("Warning: Could not load all profile data. Please refresh if needed.");
         }
 
         setLoading(false);
@@ -92,6 +110,13 @@ export default function ProfilePage() {
 
     return () => unsubscribe();
   }, [router]);
+
+  // Use session heartbeat to keep session active (every 2 minutes)
+  useSessionHeartbeat({
+    userId: user?.uid,
+    sessionId: currentSessionId,
+    enabled: !!user,
+  });
 
   const handleSaveDisplayName = async () => {
     if (!user) return;
@@ -134,12 +159,16 @@ export default function ProfilePage() {
 
       // Log the password change to audit trail
       const { browser, os } = getDeviceInfo();
-      const { ip: ipAddress } = await getIPAddressAndLocation();
+      const { ip: ipAddress, location } = await getIPAddressAndLocation(true);
       await logPasswordChange(
         user.uid,
         ipAddress,
         `${os} - ${browser}`
       );
+
+      // Refresh login activity
+      const auditHistory = await getLoginHistory(user.uid, 10);
+      setLoginActivity(auditHistory || []);
 
       alert("Password changed successfully");
       setShowPasswordModal(false);
@@ -182,6 +211,10 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     try {
+      // Clear current session ID from localStorage
+      localStorage.removeItem("currentSessionId");
+      console.log(`[PROFILE] Cleared current session ID from storage`);
+      
       await signOut(auth);
       router.push("/login");
     } catch (error) {
@@ -189,71 +222,35 @@ export default function ProfilePage() {
     }
   };
 
+  // 2FA has been removed
   const handleEnable2FA = async () => {
-    if (!user) return;
-    setIsEnabling2FA(true);
-
-    try {
-      const { device, browser } = getDeviceInfo();
-      const { ip: ipAddress } = await getIPAddressAndLocation();
-
-      const result = await enable2FA(
-        user.uid,
-        "authenticator",
-        ipAddress,
-        `${device} - ${browser}`
-      );
-
-      setBackupCodes(result.backupCodes);
-      setShowBackupCodes(true);
-
-      // Refresh security settings
-      const settings = await getSecuritySettings(user.uid);
-      setSecuritySettings(settings);
-
-      alert("2FA enabled successfully!");
-    } catch (error) {
-      console.error("Error enabling 2FA:", error);
-      alert("Failed to enable 2FA");
-    } finally {
-      setIsEnabling2FA(false);
-    }
+    console.log("[PROFILE] 2FA removed from application");
   };
 
+  // 2FA has been removed
   const handleDisable2FA = async () => {
-    if (!user) return;
-    const confirmDisable = window.confirm(
-      "Are you sure you want to disable 2FA? This reduces your account security."
-    );
-    if (!confirmDisable) return;
-
-    try {
-      const { device, browser } = getDeviceInfo();
-      const { ip: ipAddress } = await getIPAddressAndLocation();
-
-      await disable2FA(user.uid, ipAddress, `${device} - ${browser}`);
-
-      // Refresh security settings
-      const settings = await getSecuritySettings(user.uid);
-      setSecuritySettings(settings);
-
-      alert("2FA disabled successfully");
-    } catch (error) {
-      console.error("Error disabling 2FA:", error);
-      alert("Failed to disable 2FA");
-    }
+    console.log("[PROFILE] 2FA removed from application");
   };
 
   const handleLogoutSession = async (sessionId: string) => {
     if (!user) return;
 
     try {
+      console.log(`[PROFILE] Logging out session ${sessionId}...`);
       await logoutSession(user.uid, sessionId);
+      
+      // Refresh session list
       const sessions = await getActiveSessions(user.uid);
-      setActiveSessions(sessions);
-      alert("Session terminated");
+      console.log(`[PROFILE] After logout, ${sessions.length} sessions remain`);
+      setActiveSessions(sessions || []);
+
+      // Refresh past sessions
+      const past = await getPastSessions(user.uid, 10);
+      setPastSessions(past || []);
+
+      alert("Session terminated successfully");
     } catch (error) {
-      console.error("Error logging out session:", error);
+      console.error("[PROFILE] Error logging out session:", error);
       alert("Failed to logout session");
     }
   };
@@ -287,25 +284,12 @@ export default function ProfilePage() {
     return (user?.email?.[0] || "U").toUpperCase();
   };
 
-  const formatDate = (date: Date): string => {
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
+  const splitRelativeTime = (timestamp: number): string => {
+    return getRelativeTime(timestamp);
   };
 
-  const formatRelativeTime = (timestamp: number): string => {
-    const diff = Date.now() - timestamp;
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (hours < 1) return "Just now";
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return formatDate(new Date(timestamp));
+  const formatDate = (timestamp: number): string => {
+    return formatTimestamp(timestamp);
   };
 
   if (loading || !user) {
@@ -435,7 +419,7 @@ export default function ProfilePage() {
                 </p>
                 <p className="font-bold text-sm">
                   {user.metadata?.creationTime
-                    ? formatDate(new Date(user.metadata.creationTime))
+                    ? formatDate(new Date(user.metadata.creationTime).getTime())
                     : "N/A"}
                 </p>
               </div>
@@ -446,7 +430,7 @@ export default function ProfilePage() {
                 </p>
                 <p className="font-bold text-sm">
                   {user.metadata?.lastSignInTime
-                    ? formatDate(new Date(user.metadata.lastSignInTime))
+                    ? formatDate(new Date(user.metadata.lastSignInTime).getTime())
                     : "N/A"}
                 </p>
               </div>
@@ -462,108 +446,6 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* SECURITY TAB */}
-        {activeTab === "security" && (
-          <div className="space-y-6">
-            {/* 2FA */}
-            <div className="bg-white border-6 border-black p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
-              <div className="flex justify-between items-center mb-3">
-                <p className="text-sm font-black opacity-70">
-                  TWO-FACTOR AUTHENTICATION
-                </p>
-                <span
-                  className={`px-3 py-1 text-xs font-black ${
-                    securitySettings?.twoFactorEnabled
-                      ? "bg-[#2D5A3D] text-white"
-                      : "bg-[#D32F2F] text-white"
-                  }`}
-                >
-                  {securitySettings?.twoFactorEnabled ? "ENABLED" : "DISABLED"}
-                </span>
-              </div>
-              <p className="text-xs font-bold mb-4 opacity-80">
-                Add an extra security layer to your account with 2FA.
-              </p>
-              {securitySettings?.twoFactorEnabled ? (
-                <button
-                  onClick={handleDisable2FA}
-                  className="px-4 py-2 border-3 border-[#D32F2F] text-[#D32F2F] bg-white font-black text-xs hover:bg-[#D32F2F] hover:text-white transition-all"
-                >
-                  DISABLE 2FA
-                </button>
-              ) : (
-                <button
-                  onClick={handleEnable2FA}
-                  disabled={isEnabling2FA}
-                  className="px-4 py-2 border-3 border-[#2D5A3D] text-[#2D5A3D] bg-white font-black text-xs hover:bg-[#2D5A3D] hover:text-white transition-all disabled:opacity-50"
-                >
-                  {isEnabling2FA ? "ENABLING..." : "ENABLE 2FA"}
-                </button>
-              )}
-            </div>
-
-            {/* Backup Codes Modal */}
-            {showBackupCodes && (
-              <div className="bg-[#FFF3CD] border-6 border-black p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
-                <p className="text-sm font-black mb-4 uppercase">⚠️ BACKUP CODES</p>
-                <p className="text-xs font-bold mb-4 opacity-80">
-                  Save these codes in a safe place. Each code can be used once if you lose access to 2FA.
-                </p>
-                <div className="bg-black text-white p-4 mb-4 font-mono text-xs space-y-1">
-                  {backupCodes.map((code, idx) => (
-                    <p key={idx}>{code}</p>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setShowBackupCodes(false)}
-                  className="px-4 py-2 border-3 border-black bg-white font-black text-xs hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-                >
-                  CLOSE
-                </button>
-              </div>
-            )}
-
-            {/* Security Events */}
-            <div className="bg-white border-6 border-black p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
-              <p className="text-sm font-black opacity-70 mb-4 uppercase">
-                RECENT SECURITY EVENTS
-              </p>
-              <div className="space-y-3 max-h-48 overflow-y-auto">
-                {loginActivity && loginActivity.length > 0 ? (
-                  loginActivity
-                    .filter(
-                      (e: AuditEvent) =>
-                        e.type === "PASSWORD_CHANGE" ||
-                        e.type === "2FA_ENABLED" ||
-                        e.type === "2FA_DISABLED"
-                    )
-                    .slice(0, 5)
-                    .map((event: AuditEvent) => (
-                      <div
-                        key={event.id}
-                        className="border-l-4 border-[#2D5A3D] pl-3 pb-3 border-b last:border-b-0"
-                      >
-                        <p className="text-xs font-black">
-                          ✓{" "}
-                          {event.type === "PASSWORD_CHANGE"
-                            ? "PASSWORD CHANGED"
-                            : event.type === "2FA_ENABLED"
-                            ? "2FA ENABLED"
-                            : "2FA DISABLED"}
-                        </p>
-                        <p className="text-xs opacity-70">
-                          {formatRelativeTime(event.timestamp)} · {event.location}
-                        </p>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-xs opacity-70">No security events yet</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* ACTIVITY TAB */}
         {activeTab === "activity" && (
           <div className="space-y-6">
@@ -574,42 +456,61 @@ export default function ProfilePage() {
               </p>
               <div className="space-y-3">
                 {activeSessions && activeSessions.length > 0 ? (
-                  activeSessions.map((session, idx) => (
-                    <div
-                      key={session.id}
-                      className={`border-4 p-4 ${
-                        idx === 0
-                          ? "border-[#2D5A3D] bg-[#F0F8F5]"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <p className="font-black text-xs">
-                          {session.device} • {session.browser}
-                          {idx === 0 && (
-                            <span className="ml-2 bg-[#2D5A3D] text-white px-2 py-1 text-xs">
-                              CURRENT
-                            </span>
+                  activeSessions.map((session) => {
+                    const isCurrent = session.id === currentSessionId;
+                    const sessionDuration = Date.now() - session.createdAt;
+                    return (
+                      <div
+                        key={session.id}
+                        className={`border-4 p-4 ${
+                          isCurrent
+                            ? "border-[#2D5A3D] bg-[#F0F8F5]"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <p className="font-black text-xs">
+                              {session.os} • {session.browser}
+                              {isCurrent && (
+                                <span className="ml-2 bg-[#2D5A3D] text-white px-2 py-1 text-xs">
+                                  CURRENT
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          {!isCurrent && (
+                            <button
+                              onClick={() => handleLogoutSession(session.id)}
+                              className="text-xs font-black border-2 border-black px-2 py-1 hover:bg-black hover:text-white transition-all ml-2"
+                            >
+                              LOGOUT
+                            </button>
                           )}
+                        </div>
+                        <p className="text-xs font-mono opacity-70 mb-1">
+                          🌐 {session.ipAddress}
                         </p>
-                        {idx !== 0 && (
-                          <button
-                            onClick={() => handleLogoutSession(session.id)}
-                            className="text-xs font-black border-2 border-black px-2 py-1 hover:bg-black hover:text-white transition-all"
-                          >
-                            LOGOUT
-                          </button>
+                        <p className="text-xs opacity-70 mb-1">
+                          📍 {session.location}
+                        </p>
+                        <div className="flex justify-between items-start text-xs opacity-60">
+                          <span>Active: {getRelativeTime(session.lastActiveAt)}</span>
+                          <span className="font-black bg-[#2D5A3D] text-white px-2 py-1">
+                            {formatDuration(sessionDuration)}
+                          </span>
+                        </div>
+                        {session.location && (
+                          <p className="text-xs opacity-60 mt-1">
+                            📍 Location: {session.location}
+                          </p>
                         )}
+                        <p className="text-xs opacity-50 mt-1">
+                          Started: {formatDate(session.createdAt)}
+                        </p>
                       </div>
-                      <p className="text-xs opacity-70 mb-1">
-                        IP: {session.ipAddress}
-                      </p>
-                      <p className="text-xs opacity-70">
-                        {session.location} · Last active:{" "}
-                        {formatRelativeTime(session.lastActiveAt)}
-                      </p>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="text-xs opacity-70">No active sessions</p>
                 )}
@@ -627,37 +528,81 @@ export default function ProfilePage() {
             {/* Login Activity */}
             <div className="bg-white border-6 border-black p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
               <p className="text-sm font-black opacity-70 mb-4 uppercase">
-                📋 LOGIN HISTORY
+                📋 LAST 5 LOGINS
               </p>
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {loginActivity && loginActivity.length > 0 ? (
                   loginActivity
                     .filter((e: AuditEvent) => e.type === "LOGIN")
+                    .slice(0, 5)
                     .map((activity: AuditEvent) => (
                       <div
                         key={activity.id}
                         className="border-l-4 border-black pl-3 pb-3 border-b last:border-b-0"
                       >
-                        <div className="flex justify-between items-start mb-1">
+                        <div className="flex justify-between items-start mb-2">
                           <p className="text-xs font-black">
-                            {activity.status === "success" ? "✓" : "✗"}{" "}
-                            {activity.status.toUpperCase()}
+                            {activity.status === "success" ? "✓ SUCCESS" : "✗ FAILED"}
                           </p>
-                          <span className="text-xs opacity-70">
+                          <span className="text-xs font-mono opacity-70">
                             {activity.ipAddress}
                           </span>
                         </div>
                         <p className="text-xs font-bold mb-1">
                           {activity.device}
                         </p>
-                        <p className="text-xs opacity-70">
-                          {formatRelativeTime(activity.timestamp)} ·{" "}
+                        <p className="text-xs opacity-70 mb-1">
                           {activity.location}
+                        </p>
+                        <p className="text-xs opacity-60">
+                          {formatDate(activity.timestamp)}
                         </p>
                       </div>
                     ))
                 ) : (
                   <p className="text-xs opacity-70">No login history yet</p>
+                )}
+              </div>
+            </div>
+
+            {/* Past Sessions */}
+            <div className="bg-white border-6 border-black p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+              <p className="text-sm font-black opacity-70 mb-4 uppercase">
+                🕐 PAST SESSIONS ({pastSessions.length})
+              </p>
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {pastSessions && pastSessions.length > 0 ? (
+                  pastSessions.slice(0, 10).map((session, idx) => (
+                    <div
+                      key={session.id}
+                      className="border-4 border-gray-300 p-3 bg-gray-50"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <p className="font-black text-xs">
+                          {session.device} • {session.browser}
+                        </p>
+                        <span className="text-xs font-black bg-gray-400 text-white px-2 py-1">
+                          {formatDuration(session.duration)}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold mb-1">
+                        📍 {session.location}
+                      </p>
+                      <p className="text-xs opacity-70 mb-1">
+                        IP: <span className="font-mono">{session.ipAddress}</span>
+                      </p>
+                      {session.locations && session.locations.length > 1 && (
+                        <p className="text-xs opacity-60 mb-1">
+                          📍 Locations: {session.locations.join(" → ")}
+                        </p>
+                      )}
+                      <p className="text-xs opacity-60">
+                        Ended: {formatDate(session.endedAt)}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs opacity-70">No past sessions yet</p>
                 )}
               </div>
             </div>

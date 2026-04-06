@@ -11,14 +11,6 @@
     },
     
     "sessions": {
-      "$uid": {
-        ".read": "$uid === auth.uid && auth.uid !== null",
-        ".write": "$uid === auth.uid && auth.uid !== null",
-        "$sessionId": {
-          ".read": "$uid === auth.uid && auth.uid !== null",
-          ".write": "$uid === auth.uid && auth.uid !== null"
-        }
-      },
       "users": {
         "$uid": {
           "active": {
@@ -29,8 +21,22 @@
               ".write": "$uid === auth.uid && auth.uid !== null",
               ".validate": "newData.hasChildren(['id', 'userId', 'device', 'browser', 'os', 'ipAddress', 'location', 'createdAt', 'lastActiveAt'])"
             }
+          },
+          "past": {
+            ".read": "$uid === auth.uid && auth.uid !== null",
+            ".write": "$uid === auth.uid && auth.uid !== null",
+            ".indexOn": ["endedAt"],
+            "$sessionId": {
+              ".read": "$uid === auth.uid && auth.uid !== null",
+              ".write": "$uid === auth.uid && auth.uid !== null",
+              ".validate": "newData.hasChildren(['id', 'userId', 'device', 'browser', 'os', 'ipAddress', 'location', 'createdAt', 'endedAt', 'duration', 'locations'])"
+            }
           }
         }
+      },
+      "$sessionId": {
+        ".read": "auth.uid !== null",
+        ".write": "auth.uid !== null"
       }
     },
     
@@ -45,26 +51,6 @@
               ".read": "$uid === auth.uid && auth.uid !== null",
               ".write": "$uid === auth.uid && auth.uid !== null",
               ".validate": "newData.hasChildren(['id', 'userId', 'type', 'ipAddress', 'device', 'location', 'timestamp', 'status'])"
-            }
-          }
-        }
-      }
-    },
-    
-    "security": {
-      "users": {
-        "$uid": {
-          "settings": {
-            ".read": "$uid === auth.uid && auth.uid !== null",
-            ".write": "$uid === auth.uid && auth.uid !== null",
-            ".validate": "newData.hasChildren(['userId', 'twoFactorEnabled', 'lastPasswordChange'])"
-          },
-          "events": {
-            ".read": "$uid === auth.uid && auth.uid !== null",
-            ".write": "$uid === auth.uid && auth.uid !== null",
-            "$eventId": {
-              ".read": "$uid === auth.uid && auth.uid !== null",
-              ".write": "$uid === auth.uid && auth.uid !== null"
             }
           }
         }
