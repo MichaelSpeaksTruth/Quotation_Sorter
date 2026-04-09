@@ -9,14 +9,6 @@ export interface User {
   createdAt: number;
 }
 
-export interface SecuritySettings {
-  userId: string;
-  lastPasswordChange: number;
-  lastPasswordChangeIP?: string;
-  lastPasswordChangeDevice?: string;
-  backupCodes?: string[];
-}
-
 export interface BaseRequirements {
   fileUrl: string;
   extractedText: string;
