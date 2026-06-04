@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { useState, FormEvent, useEffect } from 'react';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from 'firebase/auth';
 import { ref, set, get } from 'firebase/database';
 import { auth, rtdb } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { createSession, getDeviceInfo, getIPAddressAndLocation, logAuditEvent } from '@/lib/sessionService';
 
 export default function LoginPage() {
+  const router = useRouter();
+
   // Auth mode selection
   const [authMode, setAuthMode] = useState<'google' | 'email' | null>(null);
   const [isSignup, setIsSignup] = useState(false);
@@ -22,7 +24,20 @@ export default function LoginPage() {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const router = useRouter();
+
+  // Classic B2B login gateway
+  const [showDesignerControls, setShowDesignerControls] = useState(false);
+  const isDevMode = process.env.NODE_ENV === 'development';
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.push('/dashboard');
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
 
   // Fetch user data from RTDB
   const fetchUserData = async (uid: string) => {
@@ -31,7 +46,7 @@ export default function LoginPage() {
       const snapshot = await get(userRef);
       return snapshot.val();
     } catch (err) {
-      console.error('Error fetching user data:', err);
+      console.error('[AUTH] Error fetching user data:', err);
       return null;
     }
   };
@@ -51,7 +66,7 @@ export default function LoginPage() {
       }
       return null;
     } catch (err) {
-      console.error('Error checking email:', err);
+      console.error('[AUTH] Error checking email:', err);
       return null;
     }
   };
@@ -61,7 +76,7 @@ export default function LoginPage() {
     try {
       await set(ref(rtdb, `users/${uid}`), userData);
     } catch (err) {
-      console.error('Error storing user data:', err);
+      console.error('[AUTH] Error storing user data:', err);
       throw err;
     }
   };
@@ -110,7 +125,6 @@ export default function LoginPage() {
 
       // Store current session ID in localStorage for heartbeat tracking
       localStorage.setItem("currentSessionId", sessionId);
-      console.log(`[LOGIN] Stored current session ID: ${sessionId}`);
 
       // Log audit event with collected info
       await logAuditEvent(user.uid, {
@@ -123,10 +137,9 @@ export default function LoginPage() {
         details: "User signed up with Google",
       });
 
-      console.log(`[LOGIN] Google signup successful for ${user.email}`);
       router.push('/dashboard');
     } catch (err: any) {
-      console.error('[LOGIN] Google signup error:', err);
+      console.error('[AUTH] Google signup error:', err);
       setError(err.message || 'Google sign up failed');
     } finally {
       setLoading(false);
@@ -179,7 +192,6 @@ export default function LoginPage() {
 
       // Store current session ID in localStorage for heartbeat tracking
       localStorage.setItem("currentSessionId", sessionId);
-      console.log(`[LOGIN] Stored current session ID: ${sessionId}`);
 
       // Log audit event with collected info
       await logAuditEvent(user.uid, {
@@ -192,10 +204,9 @@ export default function LoginPage() {
         details: "User signed up with email and password",
       });
 
-      console.log(`[LOGIN] Email signup successful for ${user.email}`);
       router.push('/dashboard');
     } catch (err: any) {
-      console.error('[LOGIN] Email signup error:', err);
+      console.error('[AUTH] Email signup error:', err);
       setError(err.message || 'Sign up failed');
     } finally {
       setLoading(false);
@@ -231,7 +242,6 @@ export default function LoginPage() {
 
       // Store current session ID in localStorage for heartbeat tracking
       localStorage.setItem("currentSessionId", sessionId);
-      console.log(`[LOGIN] Stored current session ID: ${sessionId}`);
 
       // Log audit event with collected info
       await logAuditEvent(user.uid, {
@@ -244,10 +254,9 @@ export default function LoginPage() {
         details: "User signed in with Google",
       });
 
-      console.log(`[LOGIN] Google signin successful for ${user.email}`);
       router.push('/dashboard');
     } catch (err: any) {
-      console.error('[LOGIN] Google signin error:', err);
+      console.error('[AUTH] Google signin error:', err);
       setError(err.message || 'Google sign in failed');
     } finally {
       setLoading(false);
@@ -271,16 +280,15 @@ export default function LoginPage() {
       const authMethod = await checkEmailAuthMethod(email);
 
       if (authMethod === 'google') {
-        // Automatically switch to Google mode
         setAuthMode('google');
-        setError('This email is registered with Google authentication. Please use "Sign in with Google"');
+        setError('This email is registered with Google. Please use "Sign In with Google"');
         setPassword('');
         setLoading(false);
         return;
       }
 
       if (!authMethod) {
-        setError('Email not found. Please create an account first');
+        setError('Email address not registered. Please create an account first');
         setLoading(false);
         return;
       }
@@ -299,7 +307,6 @@ export default function LoginPage() {
 
       // Store current session ID in localStorage for heartbeat tracking
       localStorage.setItem("currentSessionId", sessionId);
-      console.log(`[LOGIN] Stored current session ID: ${sessionId}`);
 
       // Log audit event with collected info
       await logAuditEvent(user.uid, {
@@ -312,17 +319,16 @@ export default function LoginPage() {
         details: "User signed in with email and password",
       });
 
-      console.log(`[LOGIN] Email signin successful for ${user.email}`);
       router.push('/dashboard');
     } catch (err: any) {
-      console.error('[LOGIN] Email signin error:', err);
-      setError(err.message || 'Sign in failed');
+      console.error('[AUTH] Email signin error:', err);
+      setError(err.message || 'Sign in failed. Check credentials.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Reset form
+  // Reset form state
   const resetForm = () => {
     setAuthMode(null);
     setEmail('');
@@ -332,155 +338,127 @@ export default function LoginPage() {
     setError('');
   };
 
-  // If no mode selected, show mode selection
-  if (!authMode) {
-    return (
-      <div className="min-h-screen bg-[#FFFDD0] flex items-center justify-center p-4">
-        <div className="w-full max-w-lg">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-8 text-[#2D5A3D]">
-            Quotation Sorter
-          </h1>
+  // Standard B2B styling classes (expanded for premium spacing and monochrome style)
+  const inputStyle = "w-full px-6 py-4 bg-zinc-900/40 border border-zinc-800 hover:border-zinc-700 text-zinc-100 placeholder:text-zinc-600 text-base transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700/50 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950";
+  const labelStyle = "block text-xs font-mono font-semibold text-zinc-400 mb-3 uppercase tracking-widest select-none";
+  const btnPrimaryStyle = "w-full bg-white hover:bg-zinc-100 text-zinc-950 font-bold border border-transparent text-sm py-3.5 cursor-pointer transition-all duration-150 ease-in-out shadow-md hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 active:scale-[0.98] select-none whitespace-nowrap";
+  const btnSSOStyle = "w-full bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 text-zinc-200 hover:text-white text-sm font-semibold transition-all duration-150 flex items-center justify-center gap-2.5 py-3.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700/50 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 active:scale-[0.98] select-none whitespace-nowrap";
 
-          {!isSignup ? (
-            // Sign In Mode Selection
-            <div className="space-y-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-center mb-6">Sign In</h2>
-              
-              <button
-                onClick={() => setAuthMode('google')}
-                className="w-full py-3 sm:py-4 px-4 border-4 border-black bg-white hover:bg-yellow-200 font-bold transition-colors text-sm sm:text-base"
-              >
-                Sign In with Google
-              </button>
+  const renderFormContent = () => {
+    // Screen 1: Selecting Auth Mode (Google vs Email)
+    if (!authMode) {
+      return (
+        <div className="flex flex-col select-none animate-fade-in w-full">
+          <div className="text-center select-none mb-10">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-100 leading-tight">
+              Workspace Gateway
+            </h2>
+            <p className="text-base text-zinc-400 mt-4 leading-relaxed max-w-md mx-auto">
+              Authentication 
+            </p>
+          </div>
 
-              <button
-                onClick={() => setAuthMode('email')}
-                className="w-full py-3 sm:py-4 px-4 border-4 border-black bg-white hover:bg-yellow-200 font-bold transition-colors text-sm sm:text-base"
-              >
-                Sign In with Email
-              </button>
+          <div className="w-full flex flex-col gap-6">
+            {/* Google authentication sso */}
+            <button
+              onClick={() => setAuthMode('google')}
+              className={btnSSOStyle}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.9h6.6c-.28 1.48-1.12 2.73-2.38 3.58v3h3.84c2.25-2.07 3.53-5.13 3.53-8.82z" />
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.83-3c-1.08.73-2.45 1.16-4.1 1.16-3.15 0-5.83-2.13-6.78-5.01H1.3v3.1c1.97 3.92 6.02 6.66 10.7 6.66z" />
+                <path fill="#FBBC05" d="M5.22 14.24c-.24-.73-.38-1.5-.38-2.3s.14-1.57.38-2.3V6.54H1.3C.47 8.18 0 10.03 0 12s.47 3.82 1.3 5.46l3.92-3.22z" />
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.6 4.6 1.8l3.43-3.43C17.95 1.19 15.24 0 12 0 7.32 0 3.27 2.74 1.3 6.54l3.92 3.22c.95-2.88 3.63-5.01 6.78-5.01z" />
+              </svg>
+              <span>{isSignup ? "Register with Google SSO" : "Sign In with Google SSO"}</span>
+            </button>
 
-              <div className="text-center mt-6">
-                <span className="text-xs sm:text-sm">Don't have an account? </span>
-                <button
-                  onClick={() => {
-                    setIsSignup(true);
-                    resetForm();
-                  }}
-                  className="font-bold text-[#2D5A3D] hover:underline text-xs sm:text-sm"
-                >
-                  Create Account
-                </button>
-              </div>
-            </div>
-          ) : (
-            // Sign Up Mode Selection
-            <div className="space-y-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-center mb-6">Create Account</h2>
-              
-              <button
-                onClick={() => setAuthMode('google')}
-                className="w-full py-3 sm:py-4 px-4 border-4 border-black bg-white hover:bg-yellow-200 font-bold transition-colors text-sm sm:text-base"
-              >
-                Sign Up with Google
-              </button>
+            {/* Email authentication */}
+            <button
+              onClick={() => setAuthMode('email')}
+              className={btnPrimaryStyle + " flex items-center justify-center gap-3"}
+            >
+              <svg className="w-5 h-5 text-zinc-950 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span className="align-middle">{isSignup ? "Register with Email & Pass" : "Sign In with Email & Pass"}</span>
+            </button>
+          </div>
 
-              <button
-                onClick={() => setAuthMode('email')}
-                className="w-full py-3 sm:py-4 px-4 border-4 border-black bg-white hover:bg-yellow-200 font-bold transition-colors text-sm sm:text-base"
-              >
-                Sign Up with Email
-              </button>
-
-              <div className="text-center mt-6">
-                <span className="text-xs sm:text-sm">Already have an account? </span>
-                <button
-                  onClick={() => {
-                    setIsSignup(false);
-                    resetForm();
-                  }}
-                  className="font-bold text-[#2D5A3D] hover:underline text-xs sm:text-sm"
-                >
-                  Sign In
-                </button>
-              </div>
-            </div>
-          )}
+          <div className="text-center pt-6 mt-10 border-t border-zinc-800/40 text-xs text-zinc-400 font-medium select-none">
+            {isSignup ? "Already have a secure account? " : "New to the platform? "}
+            <button
+              onClick={() => {
+                setIsSignup(!isSignup);
+                resetForm();
+              }}
+              className="font-bold text-white hover:underline transition-colors cursor-pointer bg-transparent border-none p-0 focus:outline-none ml-1.5 focus-visible:ring-1 focus-visible:ring-zinc-800 px-1 py-0.5"
+            >
+              {isSignup ? "Sign In Portal" : "Register Account"}
+            </button>
+          </div>
         </div>
+      );
+    }
 
-        {/* Creator Credit - Fade In Animation */}
-        <style>{`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          .animate-creditsFadeIn {
-            animation: fadeIn 2.5s ease-in 0.3s forwards;
-            opacity: 0;
-          }
-        `}</style>
+    // Screen 2: Google Sign Up - Add Metadata
+    if (isSignup && authMode === 'google') {
+      return (
+        <div className="flex flex-col gap-10 animate-fade-in w-full">
+          <div className="self-center">
+            <button
+              onClick={resetForm}
+              className="inline-flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-800 py-1.5 px-3 bg-zinc-900/30 border border-zinc-800/40 mb-2"
+            >
+              ← Back to Gateway
+            </button>
+          </div>
 
-        <div className="fixed bottom-4 left-0 right-0 flex justify-center px-4">
-          <p className="font-mono text-xs text-black opacity-0 animate-creditsFadeIn">
-            Created by Anurag Kumar Verma [ BTECH/10173/24 ]
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Google Sign Up
-  if (isSignup && authMode === 'google') {
-    return (
-      <div className="min-h-screen bg-[#FFFDD0] flex items-center justify-center p-4">
-        <div className="w-full max-w-lg">
-          <button
-            onClick={resetForm}
-            className="mb-6 text-xs sm:text-sm font-bold text-[#2D5A3D] hover:underline"
-          >
-            ← Back to Mode Selection
-          </button>
-
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-2 text-[#2D5A3D]">
-            Sign Up with Google
-          </h1>
+          <div className="text-center select-none">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-100 leading-tight">Metadata Profile</h2>
+            <p className="text-base text-zinc-400 mt-4 leading-relaxed">Complete your academic & corporate designations.</p>
+          </div>
           
-          <div className="space-y-4 sm:space-y-5">
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-bold mb-2">Name *</label>
+          <div className="flex flex-col gap-6 w-full">
+            <div className="flex flex-col">
+              <label className={labelStyle}>Full Name *</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
-                className="w-full p-3 sm:p-4 border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5A3D] text-xs sm:text-sm"
+                placeholder="Anurag Kumar Verma"
+                className={inputStyle}
+                required
               />
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-bold mb-2">Department *</label>
+            <div className="flex flex-col">
+              <label className={labelStyle}>Department Designation *</label>
               <select
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
-                className="w-full p-3 sm:p-4 border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5A3D] text-xs sm:text-sm"
+                className={`${inputStyle} cursor-pointer focus-visible:outline-none`}
               >
-                <option>Department of Physics</option>
+                <option value="Department of Physics" className="bg-zinc-950 text-white">Department of Physics</option>
+                <option value="Department of Chemistry" className="bg-zinc-950 text-white">Department of Chemistry</option>
+                <option value="Department of Mathematics" className="bg-zinc-950 text-white">Department of Mathematics</option>
+                <option value="Department of Computer Science" className="bg-zinc-950 text-white">Department of Computer Science</option>
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-bold mb-2">Institute *</label>
+            <div className="flex flex-col">
+              <label className={labelStyle}>Institution *</label>
               <select
                 value={institute}
                 onChange={(e) => setInstitute(e.target.value)}
-                className="w-full p-3 sm:p-4 border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5A3D] text-xs sm:text-sm"
+                className={`${inputStyle} cursor-pointer focus-visible:outline-none`}
               >
-                <option>Birla Institute of Technology, Mesra - Ranchi</option>
+                <option value="Birla Institute of Technology, Mesra - Ranchi" className="bg-zinc-950 text-white">Birla Institute of Technology, Mesra - Ranchi</option>
               </select>
             </div>
 
             {error && (
-              <div className="p-3 sm:p-4 border-4 border-red-500 bg-red-50 text-red-700 text-xs sm:text-sm">
+              <div className="p-4 border border-rose-500/20 bg-rose-500/5 text-rose-400 text-sm font-semibold leading-normal">
                 {error}
               </div>
             )}
@@ -488,132 +466,109 @@ export default function LoginPage() {
             <button
               onClick={handleGoogleSignup}
               disabled={loading}
-              className="w-full py-3 sm:py-4 px-4 bg-[#2D5A3D] hover:bg-[#1f3f2b] text-white font-bold border-4 border-black transition-colors disabled:opacity-50 text-xs sm:text-sm"
+              className={btnPrimaryStyle + " mt-4"}
             >
-              {loading ? 'Signing up...' : 'Sign Up with Google'}
+              {loading ? 'Processing...' : 'Complete Profile Setup'}
             </button>
-
-            <div className="text-center">
-              <span className="text-xs sm:text-sm">Already have an account? </span>
-              <button
-                onClick={() => {
-                  setIsSignup(false);
-                  resetForm();
-                }}
-                className="font-bold text-[#2D5A3D] hover:underline text-xs sm:text-sm"
-              >
-                Sign In
-              </button>
-            </div>
           </div>
         </div>
+      );
+    }
 
-        {/* Creator Credit - Fade In Animation */}
-        <style>{`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          .animate-creditsFadeIn {
-            animation: fadeIn 2.5s ease-in 0.3s forwards;
-            opacity: 0;
-          }
-        `}</style>
+    // Screen 3: Email Sign Up Form
+    if (isSignup && authMode === 'email') {
+      return (
+        <div className="flex flex-col gap-10 animate-fade-in w-full">
+          <div className="self-center">
+            <button
+              onClick={resetForm}
+              className="inline-flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-800 py-1.5 px-3 bg-zinc-900/30 border border-zinc-800/40 mb-2"
+            >
+              ← Back to Gateway
+            </button>
+          </div>
 
-        <div className="fixed bottom-4 left-0 right-0 flex justify-center px-4">
-          <p className="font-mono text-xs text-black opacity-0 animate-creditsFadeIn">
-            Created by Anurag Kumar Verma [ BTECH/10173/24 ]
-          </p>
-        </div>
-      </div>
-    );
-  }
+          <div className="text-center select-none">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-100 leading-tight">Create Account</h2>
+            <p className="text-base text-zinc-400 mt-4 leading-relaxed">Set up secure workspace credentials.</p>
+          </div>
 
-  // Email Sign Up
-  if (isSignup && authMode === 'email') {
-    return (
-      <div className="min-h-screen bg-[#FFFDD0] flex items-center justify-center p-4">
-        <div className="w-full max-w-lg">
-          <button
-            onClick={resetForm}
-            className="mb-6 text-xs sm:text-sm font-bold text-[#2D5A3D] hover:underline"
-          >
-            ← Back to Mode Selection
-          </button>
-
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-2 text-[#2D5A3D]">
-            Sign Up with Email
-          </h1>
-
-          <form onSubmit={handleEmailSignup} className="space-y-4 sm:space-y-5">
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-bold mb-2">Name *</label>
+          <form onSubmit={handleEmailSignup} className="flex flex-col gap-6 w-full">
+            <div className="flex flex-col">
+              <label className={labelStyle}>Full Name *</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Your full name"
-                className="w-full p-3 sm:p-4 border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5A3D] text-xs sm:text-sm"
+                placeholder="Anurag Kumar Verma"
+                className={inputStyle}
+                required
               />
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-bold mb-2">Department *</label>
+            <div className="flex flex-col">
+              <label className={labelStyle}>Department Designation *</label>
               <select
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
-                className="w-full p-3 sm:p-4 border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5A3D] text-xs sm:text-sm"
+                className={`${inputStyle} cursor-pointer focus-visible:outline-none`}
               >
-                <option>Department of Physics</option>
+                <option value="Department of Physics" className="bg-zinc-950 text-white">Department of Physics</option>
+                <option value="Department of Chemistry" className="bg-zinc-950 text-white">Department of Chemistry</option>
+                <option value="Department of Mathematics" className="bg-zinc-950 text-white">Department of Mathematics</option>
+                <option value="Department of Computer Science" className="bg-zinc-950 text-white">Department of Computer Science</option>
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-bold mb-2">Institute *</label>
+            <div className="flex flex-col">
+              <label className={labelStyle}>Institution *</label>
               <select
                 value={institute}
                 onChange={(e) => setInstitute(e.target.value)}
-                className="w-full p-3 sm:p-4 border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5A3D] text-xs sm:text-sm"
+                className={`${inputStyle} cursor-pointer focus-visible:outline-none`}
               >
-                <option>Birla Institute of Technology, Mesra - Ranchi</option>
+                <option value="Birla Institute of Technology, Mesra - Ranchi" className="bg-zinc-950 text-white">Birla Institute of Technology, Mesra - Ranchi</option>
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-bold mb-2">Email *</label>
+            <div className="flex flex-col">
+              <label className={labelStyle}>Corporate Email Address *</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="w-full p-3 sm:p-4 border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5A3D] text-xs sm:text-sm"
+                placeholder="name@bitmesra.ac.in"
+                className={inputStyle}
+                required
               />
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-bold mb-2">Password *</label>
+            <div className="flex flex-col">
+              <label className={labelStyle}>Secure Password *</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className="w-full p-3 sm:p-4 border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5A3D] text-xs sm:text-sm"
+                className={inputStyle}
+                required
               />
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-bold mb-2">Confirm Password *</label>
+            <div className="flex flex-col">
+              <label className={labelStyle}>Confirm Password *</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter password"
-                className="w-full p-3 sm:p-4 border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5A3D] text-xs sm:text-sm"
+                className={inputStyle}
+                required
               />
             </div>
 
             {error && (
-              <div className="p-3 sm:p-4 border-4 border-red-500 bg-red-50 text-red-700 text-xs sm:text-sm">
+              <div className="p-4 border border-rose-500/20 bg-rose-500/5 text-rose-400 text-sm font-semibold leading-normal">
                 {error}
               </div>
             )}
@@ -621,67 +576,36 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 sm:py-4 px-4 bg-[#2D5A3D] hover:bg-[#1f3f2b] text-white font-bold border-4 border-black transition-colors disabled:opacity-50 text-xs sm:text-sm"
+              className={btnPrimaryStyle + " mt-4"}
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? 'Creating Credentials...' : 'Register Corporate Account'}
             </button>
-
-            <div className="text-center">
-              <span className="text-xs sm:text-sm">Already have an account? </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignup(false);
-                  resetForm();
-                }}
-                className="font-bold text-[#2D5A3D] hover:underline text-xs sm:text-sm"
-              >
-                Sign In
-              </button>
-            </div>
           </form>
         </div>
+      );
+    }
 
-        {/* Creator Credit - Fade In Animation */}
-        <style>{`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          .animate-creditsFadeIn {
-            animation: fadeIn 2.5s ease-in 0.3s forwards;
-            opacity: 0;
-          }
-        `}</style>
+    // Screen 4: Google Sign In
+    if (!isSignup && authMode === 'google') {
+      return (
+        <div className="flex flex-col gap-10 animate-fade-in w-full">
+          <div className="self-center">
+            <button
+              onClick={resetForm}
+              className="inline-flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-800 py-1.5 px-3 bg-zinc-900/30 border border-zinc-800/40 mb-2"
+            >
+              ← Back to Gateway
+            </button>
+          </div>
 
-        <div className="fixed bottom-4 left-0 right-0 flex justify-center px-4">
-          <p className="font-mono text-xs text-black opacity-0 animate-creditsFadeIn">
-            Created by Anurag Kumar Verma [ BTECH/10173/24 ]
-          </p>
-        </div>
-      </div>
-    );
-  }
+          <div className="text-center select-none">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-100 leading-tight">Google SSO</h2>
+            <p className="text-base text-zinc-400 mt-4 leading-relaxed">Authenticate using your registered Google account.</p>
+          </div>
 
-  // Google Sign In
-  if (!isSignup && authMode === 'google') {
-    return (
-      <div className="min-h-screen bg-[#FFFDD0] flex items-center justify-center p-4">
-        <div className="w-full max-w-lg">
-          <button
-            onClick={resetForm}
-            className="mb-6 text-xs sm:text-sm font-bold text-[#2D5A3D] hover:underline"
-          >
-            ← Back to Mode Selection
-          </button>
-
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-2 text-[#2D5A3D]">
-            Sign In with Google
-          </h1>
-
-          <div className="space-y-4 sm:space-y-5">
+          <div className="flex flex-col gap-6 w-full">
             {error && (
-              <div className="p-3 sm:p-4 border-4 border-red-500 bg-red-50 text-red-700 text-xs sm:text-sm">
+              <div className="p-4 border border-rose-500/20 bg-rose-500/5 text-rose-400 text-sm font-semibold leading-normal">
                 {error}
               </div>
             )}
@@ -689,88 +613,66 @@ export default function LoginPage() {
             <button
               onClick={handleGoogleSignin}
               disabled={loading}
-              className="w-full py-3 sm:py-4 px-4 bg-[#2D5A3D] hover:bg-[#1f3f2b] text-white font-bold border-4 border-black transition-colors disabled:opacity-50 text-xs sm:text-sm"
+              className={btnSSOStyle}
             >
-              {loading ? 'Signing in...' : 'Sign In with Google'}
+              <svg className="w-5 h-5 text-zinc-100" viewBox="0 0 24 24">
+                <path fill="#FFFFFF" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.9h6.6c-.28 1.48-1.12 2.73-2.38 3.58v3h3.84c2.25-2.07 3.53-5.13 3.53-8.82z" />
+                <path fill="#FFFFFF" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.83-3c-1.08.73-2.45 1.16-4.1 1.16-3.15 0-5.83-2.13-6.78-5.01H1.3v3.1c1.97 3.92 6.02 6.66 10.7 6.66z" />
+                <path fill="#FFFFFF" d="M5.22 14.24c-.24-.73-.38-1.5-.38-2.3s.14-1.57.38-2.3V6.54H1.3C.47 8.18 0 10.03 0 12s.47 3.82 1.3 5.46l3.92-3.22z" />
+                <path fill="#FFFFFF" d="M12 4.75c1.77 0 3.35.6 4.6 1.8l3.43-3.43C17.95 1.19 15.24 0 12 0 7.32 0 3.27 2.74 1.3 6.54l3.92 3.22c.95-2.88 3.63-5.01 6.78-5.01z" />
+              </svg>
+              <span>{loading ? 'Authenticating...' : 'Sign in with Google'}</span>
             </button>
-
-            <div className="text-center">
-              <span className="text-xs sm:text-sm">Don't have an account? </span>
-              <button
-                onClick={() => {
-                  setIsSignup(true);
-                  resetForm();
-                }}
-                className="font-bold text-[#2D5A3D] hover:underline text-xs sm:text-sm"
-              >
-                Create Account
-              </button>
-            </div>
           </div>
         </div>
+      );
+    }
 
-        {/* Creator Credit - Fade In Animation */}
-        <style>{`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          .animate-creditsFadeIn {
-            animation: fadeIn 2.5s ease-in 0.3s forwards;
-            opacity: 0;
-          }
-        `}</style>
+    // Screen 5: Email Sign In Form
+    if (!isSignup && authMode === 'email') {
+      return (
+        <div className="flex flex-col gap-10 animate-fade-in w-full">
+          <div className="self-center">
+            <button
+              onClick={resetForm}
+              className="inline-flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-800 py-1.5 px-3 bg-zinc-900/30 border border-zinc-800/40 mb-2"
+            >
+              ← Back to Gateway
+            </button>
+          </div>
 
-        <div className="fixed bottom-4 left-0 right-0 flex justify-center px-4">
-          <p className="font-mono text-xs text-black opacity-0 animate-creditsFadeIn">
-            Created by Anurag Kumar Verma [ BTECH/10173/24 ]
-          </p>
-        </div>
-      </div>
-    );
-  }
+          <div className="text-center select-none">
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-100 leading-tight">Sign In</h2>
+            <p className="text-base text-zinc-400 mt-4 leading-relaxed">Authenticate using registered academic credentials.</p>
+          </div>
 
-  // Email Sign In
-  if (!isSignup && authMode === 'email') {
-    return (
-      <div className="min-h-screen bg-[#FFFDD0] flex items-center justify-center p-4">
-        <div className="w-full max-w-lg">
-          <button
-            onClick={resetForm}
-            className="mb-6 text-xs sm:text-sm font-bold text-[#2D5A3D] hover:underline"
-          >
-            ← Back to Mode Selection
-          </button>
-
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-2 text-[#2D5A3D]">
-            Sign In with Email
-          </h1>
-
-          <form onSubmit={handleEmailSignin} className="space-y-4 sm:space-y-5">
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-bold mb-2">Email *</label>
+          <form onSubmit={handleEmailSignin} className="flex flex-col gap-6 w-full">
+            <div className="flex flex-col">
+              <label className={labelStyle}>Registered Email Address *</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="w-full p-3 sm:p-4 border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5A3D] text-xs sm:text-sm"
+                placeholder="name@bitmesra.ac.in"
+                className={inputStyle}
+                required
               />
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm md:text-base font-bold mb-2">Password *</label>
+            <div className="flex flex-col">
+              <label className={labelStyle}>Account Password *</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                className="w-full p-3 sm:p-4 border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5A3D] text-xs sm:text-sm"
+                placeholder="Enter account password"
+                className={inputStyle}
+                required
               />
             </div>
 
             {error && (
-              <div className="p-3 sm:p-4 border-4 border-red-500 bg-red-50 text-red-700 text-xs sm:text-sm">
+              <div className="p-4 border border-zinc-800 bg-zinc-900/50 text-zinc-400 text-sm font-semibold leading-normal">
                 {error}
               </div>
             )}
@@ -778,45 +680,52 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 sm:py-4 px-4 bg-[#2D5A3D] hover:bg-[#1f3f2b] text-white font-bold border-4 border-black transition-colors disabled:opacity-50 text-xs sm:text-sm"
+              className={btnPrimaryStyle + " mt-4"}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Authenticating...' : 'Secure Sign In'}
             </button>
-
-            <div className="text-center">
-              <span className="text-xs sm:text-sm">Don't have an account? </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignup(true);
-                  resetForm();
-                }}
-                className="font-bold text-[#2D5A3D] hover:underline text-xs sm:text-sm"
-              >
-                Create Account
-              </button>
-            </div>
           </form>
         </div>
+      );
+    }
+  };
 
-        {/* Creator Credit - Fade In Animation */}
-        <style>{`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          .animate-creditsFadeIn {
-            animation: fadeIn 2.5s ease-in 0.3s forwards;
-            opacity: 0;
-          }
-        `}</style>
+  return (
+    <div className="flex flex-col items-center justify-center min-h-full w-full py-4 select-none relative overflow-hidden animate-fade-in">
+      {/* Background technical grid overlay */}
+      <div className="absolute inset-0 atmospheric-grid opacity-[0.15] pointer-events-none -z-20" />
 
-        <div className="fixed bottom-4 left-0 right-0 flex justify-center px-4">
-          <p className="font-mono text-xs text-black opacity-0 animate-creditsFadeIn">
-            Created by Anurag Kumar Verma [ BTECH/10173/24 ]
-          </p>
+      {/* Classic, super-soft central monochrome radial glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full bg-zinc-500/5 blur-[140px] pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '10s' }} />
+
+      {/* Physical glassmorphic container with double bevel highlight & outer shadow */}
+      <div 
+        className="w-full max-w-[440px] sm:max-w-[480px] premium-glass-card relative overflow-hidden transition-all duration-300" 
+      >
+        
+        {/* Brand logo */}
+        <div className="flex flex-col items-center mb-10 select-none">
+          <div className="flex items-center justify-center w-12 h-12 bg-zinc-900/80 border border-white/8 mb-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] transition-transform duration-200 hover:scale-105">
+            <svg className="w-6 h-6 text-zinc-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+            </svg>
+          </div>
+          <span className="font-mono text-xs font-bold tracking-[0.35em] text-zinc-100 uppercase">
+            QUOTE<span className="text-zinc-500 font-semibold">ANALYZER</span>
+          </span>
         </div>
+
+        {/* Active Screen Form Content */}
+        <div className="w-full">
+          {renderFormContent()}
+        </div>
+
+        {/* Technical Footer */}
+        <div className="font-mono text-[10px] uppercase text-zinc-500 border-t border-zinc-900/60 pt-6 mt-10 tracking-widest leading-normal text-center">
+          PROCUREMENT PORTAL V1.2.0 // ANURAG KUMAR VERMA [BTECH/10173/24]
+        </div>
+
       </div>
-    );
-  }
+    </div>
+  );
 }

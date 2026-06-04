@@ -1,4 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+}
+
+@variant dark (&:where(.dark, .dark *), @media (prefers-color-scheme: dark));
+
+@theme {
+  --color-brand-blue: #2563eb; /* Corporate B2B blue primary */
+  --color-brand-blue-hover: #1d4ed8;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
 
 * {
   margin: 0;
@@ -6,12 +20,456 @@
   box-sizing: border-box;
 }
 
+*, ::after, ::before {
+  border-color: var(--color-zinc-200);
+}
+
+@media (prefers-color-scheme: dark) {
+  *, ::after, ::before {
+    border-color: var(--color-zinc-800);
+  }
+}
+
+.dark *, .dark ::after, .dark ::before {
+  border-color: var(--color-zinc-800);
+}
+
 html, body {
   width: 100%;
   height: 100%;
+  background-color: #f8fafc; /* Standard corporate slate-50 light background */
+  color: #0f172a; /* Slate-900 text */
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  html, body {
+    background-color: #0f172a; /* Slate-900 dark background */
+    color: #f8fafc;
+  }
+}
+
+.dark html, .dark body {
+  background-color: #0f172a;
+  color: #f8fafc;
 }
 
 body {
-  font-family: 'Courier New', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Crisp, professional scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* slate-300 */
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* slate-400 */
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Corporate Card / Container Outline styling */
+.corp-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0; /* slate-200 */
+  border-radius: 0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark .corp-card {
+  background-color: #1e293b; /* slate-800 */
+  border: 1px solid #334155; /* slate-700 */
+}
+
+/* Classic Form Focus styling */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #71717a !important; /* Zinc-500 gray focus */
+  box-shadow: 0 0 0 2px rgba(113, 113, 122, 0.2) !important;
+}
+
+.dark input:focus, .dark select:focus, .dark textarea:focus {
+  border-color: #a1a1aa !important; /* Zinc-400 gray focus */
+  box-shadow: 0 0 0 2px rgba(161, 161, 170, 0.25) !important;
+}
+
+/* Standard B2B styling classes */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: 1px solid transparent;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0;
+  background-color: #ffffff;
+  color: #334155;
+  border: 1px solid #d1d5db;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.dark .btn-secondary {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+}
+
+.dark .btn-secondary:hover:not(:disabled) {
+  background-color: #334155;
+  border-color: #64748b;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Premium Monochrome Workstation Gateway Styles */
+.premium-glass-card {
+  background-color: rgba(9, 11, 15, 0.52); /* slightly stronger glass */
+  backdrop-filter: blur(28px); /* stronger blur for depth */
+  border: 1px solid rgba(255, 255, 255, 0.09); /* border-white/9 */
+  box-shadow: 
+    0 18px 60px -20px rgba(0, 0, 0, 0.85), 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06); /* subtle bevel */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+  padding: 3.5rem 3rem; /* dynamic and spacious padding */
+  border-radius: 0;
+}
+
+@media (max-width: 640px) {
+  .premium-glass-card {
+    padding: 2.5rem 1.75rem; /* slightly tighter on small mobile displays */
+  }
+}
+
+.premium-glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-4px);
+  box-shadow: 
+    0 22px 72px -18px rgba(0, 0, 0, 0.92), 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+.atmospheric-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CYBERNETIC HUD TERMINAL — ANIMATION SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Core rotation keyframes for HUD ring system */
+@keyframes hud-rotate-cw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes hud-rotate-ccw {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+/* Neon pulse glow for status indicators */
+@keyframes pulse-neon {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px currentColor); }
+  50% { opacity: 0.6; filter: drop-shadow(0 0 20px currentColor); }
+}
+
+/* Terminal cursor blink */
+@keyframes blink-cursor {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Shimmer sweep for cards */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Glow border pulse for HUD cards */
+@keyframes glow-border-teal {
+  0%, 100% {
+    border-color: rgba(20, 184, 166, 0.2);
+    box-shadow: 0 0 15px rgba(20, 184, 166, 0.05), inset 0 1px 0 rgba(20, 184, 166, 0.05);
+  }
+  50% {
+    border-color: rgba(20, 184, 166, 0.5);
+    box-shadow: 0 0 30px rgba(20, 184, 166, 0.12), inset 0 1px 0 rgba(20, 184, 166, 0.1);
+  }
+}
+
+@keyframes glow-border-red {
+  0%, 100% {
+    border-color: rgba(239, 68, 68, 0.2);
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.05), inset 0 1px 0 rgba(239, 68, 68, 0.05);
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.12), inset 0 1px 0 rgba(239, 68, 68, 0.1);
+  }
+}
+
+/* Radar sweep for diagnostic scanner */
+@keyframes radar-sweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Data cascade for terminal log entries */
+@keyframes data-cascade {
+  0% { opacity: 0; transform: translateY(-6px); }
+  20% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Grid background pulse */
+@keyframes grid-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+/* Scanline scroll */
+@keyframes scanline-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 40px; }
+}
+
+/* Progress bar fill animation */
+@keyframes progress-fill {
+  from { width: 0%; }
+}
+
+/* Hazard stripe animation for danger zone */
+@keyframes hazard-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+
+/* Floating particle drift */
+@keyframes float-drift {
+  0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
+  25% { transform: translateY(-8px) translateX(4px); opacity: 0.7; }
+  50% { transform: translateY(-3px) translateX(-3px); opacity: 0.5; }
+  75% { transform: translateY(-10px) translateX(2px); opacity: 0.6; }
+}
+
+/* ═══ HUD UTILITY CLASSES ═══ */
+
+/* Scanline overlay — apply to container with position:relative */
+.hud-scanline::before {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(20, 184, 166, 0.012) 2px,
+    rgba(20, 184, 166, 0.012) 4px
+  );
+  animation: scanline-scroll 4s linear infinite;
+  z-index: 2;
+}
+
+/* Tactical grid background */
+.hud-grid-bg {
+  background-image:
+    linear-gradient(rgba(20, 184, 166, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: grid-pulse 8s ease-in-out infinite;
+}
+
+/* CRT text glow */
+.crt-glow {
+  text-shadow: 0 0 8px currentColor, 0 0 2px currentColor;
+}
+
+/* Neon border glow cycle */
+.neon-border-teal {
+  animation: glow-border-teal 3s ease-in-out infinite;
+}
+
+.neon-border-red {
+  animation: glow-border-red 2.5s ease-in-out infinite;
+}
+
+/* HUD card base — dark glassmorphic panel */
+.hud-card {
+  background: rgba(9, 9, 11, 0.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(20, 184, 166, 0.15);
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.15s ease;
+}
+
+.hud-card:hover {
+  border-color: rgba(20, 184, 166, 0.35);
+  box-shadow: 0 0 24px rgba(20, 184, 166, 0.08);
+  transform: translateY(-1px);
+}
+
+/* Shimmer overlay inside hud-card */
+.hud-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(20, 184, 166, 0.03),
+    transparent
+  );
+  animation: shimmer-sweep 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Danger card variant */
+.hud-card-danger {
+  background: rgba(9, 9, 11, 0.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.hud-card-danger::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(239, 68, 68, 0.8) 0px,
+    rgba(239, 68, 68, 0.8) 10px,
+    rgba(245, 158, 11, 0.6) 10px,
+    rgba(245, 158, 11, 0.6) 20px
+  );
+  background-size: 40px 3px;
+  animation: hazard-scroll 1s linear infinite;
+}
+
+/* Terminal container */
+.hud-terminal {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(20, 184, 166, 0.1);
+  border-radius: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: rgba(20, 184, 166, 0.7);
+  overflow-y: auto;
+  position: relative;
+}
+
+.hud-terminal::-webkit-scrollbar {
+  width: 4px;
+}
+
+.hud-terminal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hud-terminal::-webkit-scrollbar-thumb {
+  background: rgba(20, 184, 166, 0.15);
+  border-radius: 99px;
+}
+
+.hud-terminal::-webkit-scrollbar-thumb:hover {
+  background: rgba(20, 184, 166, 0.3);
+}
+
+/* HUD metric label */
+.hud-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(161, 161, 170, 0.6);
+  line-height: 1;
+}
+
+/* HUD metric value */
+.hud-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(228, 228, 231, 0.9);
+  line-height: 1;
+}
+
+/* Floating particle dots */
+.hud-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: rgba(20, 184, 166, 0.4);
+  border-radius: 50%;
+  animation: float-drift 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
 

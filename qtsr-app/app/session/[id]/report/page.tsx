@@ -3,10 +3,25 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { auth, rtdb } from "@/lib/firebase";
-import { ref, get, onValue } from "firebase/database";
+import { ref, onValue } from "firebase/database";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { Session, Quotation } from "@/lib/types";
 import { analyzePrecision } from "@/lib/measurementValidation";
+
+const formatSpecKey = (key: string) => {
+  const mapping: Record<string, string> = {
+    vendorName: "Vendor Name",
+    surface_roughness_microns: "Surface Roughness (microns)",
+    target_budget_usd: "Target Budget (USD)",
+    chord_length_mm: "Chord Length (mm)",
+    span_mm: "Span (mm)",
+    internal_coolant_pressure_kpa: "Internal Coolant Pressure (kPa)",
+    quantity: "Quantity",
+    unit: "Unit",
+    certifications: "Certifications"
+  };
+  return mapping[key] || key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+};
 
 export default function ReportPage() {
   const params = useParams();
@@ -24,6 +39,7 @@ export default function ReportPage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
+        setUser(null); // Resolves permission denied error by unsubscribing before auth token invalidation
         router.push("/login");
       } else {
         setUser(currentUser);
@@ -75,6 +91,9 @@ export default function ReportPage() {
             setBaseReqs(reqs);
           }
         }
+      },
+      (error) => {
+        console.error("Error loading session:", error);
       }
     );
 
@@ -104,6 +123,10 @@ export default function ReportPage() {
           );
         }
         setLoading(false);
+      },
+      (error) => {
+        console.error("Error loading quotations:", error);
+        setLoading(false);
       }
     );
 
@@ -113,687 +136,747 @@ export default function ReportPage() {
   const getRecommendationColor = (rec: string) => {
     switch (rec?.toUpperCase()) {
       case "APPROVED":
-        return "bg-green-400 border-4 border-black";
+      case "HIGHLY_RECOMMENDED":
+      case "PASS":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25";
       case "CONDITIONAL":
-        return "bg-yellow-400 border-4 border-black";
+      case "RECOMMENDED":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25";
       case "REJECTED":
-        return "bg-red-400 border-4 border-black";
+      case "WARNING":
+      case "FAIL":
+        return "bg-rose-500/10 text-rose-600 dark:text-rose-500 border border-rose-500/25";
       default:
-        return "bg-gray-300 border-4 border-black";
+        return "bg-zinc-500/10 text-zinc-400 dark:text-zinc-400 border border-zinc-500/25";
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FFFDD0] flex items-center justify-center">
-        <p className="text-xl font-bold">LOADING REPORT...</p>
+      <div className="flex flex-col items-center justify-center py-20 gap-4 font-sans text-zinc-900 dark:text-zinc-50">
+        <div className="relative w-12 h-12 flex items-center justify-center">
+          <span className="absolute w-full h-full border-4 border-zinc-200 dark:border-zinc-800 rounded-full" />
+          <span className="absolute w-full h-full border-4 border-t-blue-600 dark:border-t-blue-500 rounded-full animate-spin" />
+        </div>
+        <p className="text-xs font-mono font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase animate-pulse">
+          Loading Compliance Report...
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFDD0] text-black font-mono p-4 md:p-8 lg:p-12 overflow-x-hidden">
-      <div className="max-w-[1600px] mx-auto flex flex-col gap-6 md:gap-8">
-        {/* Header - Responsive Layout */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
-          <div className="bg-white border-8 border-black p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] flex-1 w-full">
-            <h1 className="text-4xl font-black uppercase tracking-tighter">
-              COMPLIANCE REPORT
-            </h1>
-            <p className="text-sm font-bold mt-2">
-              SESSION: {session?.title}
-            </p>
-          </div>
-
-          <button
-            onClick={() => router.push(`/session/${sessionId}`)}
-            className="px-4 md:px-6 py-3 font-black uppercase border-4 border-black bg-black text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-sm md:text-base whitespace-nowrap"
-          >
-            BACK TO WORKSPACE
-          </button>
+    <div className="w-full flex flex-col gap-6 text-zinc-900 dark:text-zinc-50 font-sans antialiased">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full border-b border-zinc-200 dark:border-zinc-800 pb-5 print:pb-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-50">
+            Compliance Report
+          </h1>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-mono uppercase leading-none">
+            Session: <span className="text-zinc-900 dark:text-zinc-100 font-bold font-sans">{session?.title}</span>
+          </p>
         </div>
 
-        {/* Base Requirements Section */}
-        <div className="w-full bg-white border-4 border-black p-4 md:p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-          <h2 className="text-2xl font-black uppercase mb-4 tracking-tight">
-            BASE REQUIREMENTS
-          </h2>
+        <button
+          onClick={() => router.push(`/session/${sessionId}`)}
+          className="inline-flex w-auto items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-850 text-zinc-700 dark:text-zinc-300 font-semibold rounded-md transition-all shadow-sm text-xs tracking-wider uppercase cursor-pointer active:scale-95 duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600 print:hidden"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Workspace
+        </button>
+      </div>
 
-          {baseReqs.length > 0 ? (
-            <div className="border-2 border-black p-3 bg-gray-50 max-h-32 overflow-y-auto">
-              <ul className="space-y-2">
-                {baseReqs.map((req, idx) => (
-                  <li key={idx} className="text-sm font-bold flex gap-2">
-                    <span className="font-black">•</span>
-                    <span>{req}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <div className="border-2 border-black p-3 bg-yellow-200 font-bold text-sm">
-              NO BASE REQUIREMENTS UPLOADED
-            </div>
-          )}
-        </div>
+      {/* Base Requirements Section */}
+      <div className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
+        <h2 className="text-xs font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase mb-3 select-none">
+          Base Requirements
+        </h2>
 
-        {/* Comparison Matrix */}
-        {quotations.length > 0 ? (
-          <div className="mt-4 mb-4 overflow-x-auto border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-            <table className="w-full border-collapse bg-white">
-              <thead>
-                <tr className="bg-black text-white">
-                  <th className="border-2 border-black p-2 font-black uppercase text-left text-xs">
-                    VENDOR
-                  </th>
-                  <th className="border-2 border-black p-2 font-black uppercase text-left text-xs">
-                    TOTAL COST
-                  </th>
-                  <th className="border-2 border-black p-2 font-black uppercase text-center text-xs">
-                    COMPLIANCE %
-                  </th>
-                  <th className="border-2 border-black p-2 font-black uppercase text-left text-xs">
-                    MATCHED SPECS
-                  </th>
-                  <th className="border-2 border-black p-2 font-black uppercase text-left text-xs">
-                    MISSING SPECS
-                  </th>
-                  <th className="border-2 border-black p-2 font-black uppercase text-left text-xs">
-                    DELIVERY
-                  </th>
-                  <th className="border-2 border-black p-2 font-black uppercase text-center text-xs">
-                    RECOMMENDATION
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {quotations.map((quote) => {
-                  const report = quote.finalJsonReport;
-                  const matched = report?.matchedRequirements || [];
-                  const missing = report?.missingRequirements || [];
-                  const recommendation = report?.overallRecommendation || "N/A";
-
-                  return (
-                    <tr key={quote.id} className="border-b-2 border-black">
-                      <td className="border-2 border-black p-2 font-black uppercase text-xs">
-                        {quote.vendorName}
-                      </td>
-                      <td className="border-2 border-black p-2 font-bold text-xs">
-                        {quote.finalJsonReport?.currency || "N/A"} {quote.parsedData?.totalCost?.toLocaleString() || "N/A"}
-                      </td>
-                      <td
-                        className={`border-2 border-black p-2 font-black text-center text-xs ${
-                          (quote.parsedData?.complianceScore || 0) >= 80
-                            ? "bg-green-300"
-                            : (quote.parsedData?.complianceScore || 0) >= 50
-                            ? "bg-yellow-300"
-                            : "bg-red-300"
-                        }`}
-                      >
-                        {quote.parsedData?.complianceScore || 0}%
-                      </td>
-                      <td className="border-2 border-black p-2 font-bold text-xs">
-                        <div className="bg-green-200 border-2 border-black p-1 max-h-12 overflow-y-auto">
-                          {matched.length > 0 ? (
-                            <ul className="space-y-1">
-                              {matched.slice(0, 3).map((spec: string, idx: number) => (
-                                <li key={idx} className="text-xs">
-                                  ✓ {spec}
-                                </li>
-                              ))}
-                              {matched.length > 3 && (
-                                <li className="text-xs font-black">
-                                  +{matched.length - 3} more
-                                </li>
-                              )}
-                            </ul>
-                          ) : (
-                            <span className="text-xs opacity-50">—</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="border-2 border-black p-2 font-bold text-xs">
-                        <div className="bg-red-200 border-2 border-black p-1 max-h-12 overflow-y-auto">
-                          {missing.length > 0 ? (
-                            <ul className="space-y-1">
-                              {missing.slice(0, 3).map((spec: string, idx: number) => (
-                                <li key={idx} className="text-xs">
-                                  ✗ {spec}
-                                </li>
-                              ))}
-                              {missing.length > 3 && (
-                                <li className="text-xs font-black">
-                                  +{missing.length - 3} more
-                                </li>
-                              )}
-                            </ul>
-                          ) : (
-                            <span className="text-xs opacity-50">—</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="border-2 border-black p-2 font-bold text-xs">
-                        {report?.deliveryTime || "N/A"}
-                      </td>
-                      <td
-                        className={`border-2 border-black p-2 font-black uppercase text-center text-xs ${getRecommendationColor(
-                          recommendation
-                        )}`}
-                      >
-                        {recommendation}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="bg-white border-4 border-black p-8 text-center mb-6">
-            <p className="font-black uppercase text-base">
-              NO ANALYZED QUOTATIONS YET
-            </p>
-            <p className="text-sm font-bold mt-1">
-              UPLOAD QUOTATIONS TO BEGIN ANALYSIS
-            </p>
-          </div>
-        )}
-
-        {/* Detailed Reports */}
-        {quotations.length > 0 && (
-          <div className="space-y-8 mt-8 mb-8">
-            <h2 className="text-2xl font-black uppercase tracking-tight">
-              DETAILED ANALYSIS
-            </h2>
-
-            {quotations.map((quote) => {
-              const report = quote.finalJsonReport;
-
+        {baseReqs.length > 0 ? (
+          (() => {
+            const rawText = session?.baseRequirements?.extractedText || "";
+            const isJson = rawText.trim().startsWith("{") || rawText.trim().startsWith("[");
+            if (isJson) {
               return (
-                <div
-                  key={quote.id}
-                  className="bg-white border-2 border-black p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-black uppercase">
-                      {quote.vendorName}
-                    </h3>
-                    <span
-                      className={`px-2 py-1 font-black uppercase text-xs ${getRecommendationColor(
-                        report?.overallRecommendation
-                      )}`}
-                    >
-                      {report?.overallRecommendation || "N/A"}
-                    </span>
+                <div className="relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-950">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 font-mono text-[9px] uppercase font-bold tracking-widest text-zinc-400 dark:text-zinc-500 select-none">
+                    <span>baseline_specification.json</span>
+                    <span className="text-blue-600 dark:text-blue-400">Read Only</span>
                   </div>
-
-                  {/* Precision Validation Section */}
-                  {(() => {
-                    const precisionAnalysis = analyzePrecision(report || {});
-                    const precisionStatus = quote.finalJsonReport?.precisionValidation || "UNKNOWN";
-                    const hasPrecisionIssues = precisionAnalysis.criticalIssues > 0;
-                    
-                    return (
-                      <div
-                        className={`mb-4 border-2 ${
-                          hasPrecisionIssues
-                            ? "border-red-600 bg-red-100"
-                            : "border-green-600 bg-green-100"
-                        } p-4`}
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <p className="font-black uppercase text-sm">
-                            MEASUREMENT PRECISION VALIDATION
-                          </p>
-                          <span
-                            className={`px-3 py-1 text-xs font-black uppercase border-2 border-black ${
-                              precisionStatus === "PASS"
-                                ? "bg-green-300"
-                                : precisionStatus === "FAIL"
-                                ? "bg-red-400"
-                                : "bg-yellow-300"
-                            }`}
-                          >
-                            {precisionStatus}
-                          </span>
-                        </div>
-
-                        <p className="font-bold text-sm mb-3">
-                          {precisionAnalysis.summary}
-                        </p>
-
-                        {precisionAnalysis.totalIssues > 0 && (
-                          <div className="space-y-2">
-                            {precisionAnalysis.issues.map((issue, idx) => (
-                              <div
-                                key={idx}
-                                className="text-xs font-bold border-l-4 border-black pl-2 py-1"
-                              >
-                                <p className="uppercase">
-                                  [{issue.severity}] {issue.type}
-                                </p>
-                                <p className="opacity-90">{issue.description}</p>
-                                {issue.requirement !== "See measurementPrecisionErrors" && (
-                                  <p className="text-xs opacity-75 mt-1">
-                                    Req: {issue.requirement} | Vendor: {issue.vendor}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {precisionAnalysis.totalIssues === 0 && (
-                          <p className="text-sm font-bold opacity-80">
-                            All measurements meet requirements within tolerance
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  <div className="grid grid-cols-2 gap-6 mb-6">
-                    <div className="border-2 border-black p-2 bg-gray-50">
-                      <p className="text-xs font-black uppercase mb-1">
-                        Total Cost
-                      </p>
-                      <p className="text-lg font-black">
-                        {quote.finalJsonReport?.currency || "N/A"} {quote.parsedData?.totalCost?.toLocaleString() || "N/A"}
-                      </p>
-                    </div>
-
-                    <div className="border-2 border-black p-2 bg-gray-50">
-                      <p className="text-xs font-black uppercase mb-1">
-                        Compliance Score
-                      </p>
-                      <p className="text-lg font-black">
-                        {quote.parsedData?.complianceScore || 0}%
-                      </p>
-                    </div>
-
-                    <div className="border-2 border-black p-2 bg-gray-50">
-                      <p className="text-xs font-black uppercase mb-1">
-                        Delivery
-                      </p>
-                      <p className="font-bold text-xs">
-                        {report?.deliveryTime || "Not specified"}
-                      </p>
-                    </div>
-
-                    <div className="border-2 border-black p-2 bg-gray-50">
-                      <p className="text-xs font-black uppercase mb-1">
-                        Certifications
-                      </p>
-                      <p className="font-bold text-xs">
-                        {report?.certifications?.length
-                          ? report.certifications.join(", ")
-                          : "None listed"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {report?.criticalIssues?.length > 0 && (
-                    <div className="mb-3 border-2 border-red-600 bg-red-100 p-2">
-                      <p className="font-black uppercase text-xs mb-1">
-                        Critical Issues
-                      </p>
-                      <ul className="space-y-0">
-                        {report?.criticalIssues?.map((issue: string, idx: number) => (
-                          <li key={idx} className="text-xs font-bold">
-                            • {issue}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {report?.validationNotes && (
-                    <div className="border-2 border-black p-2 bg-gray-50 mb-3">
-                      <p className="text-xs font-black uppercase mb-1">
-                        Validator Notes
-                      </p>
-                      <p className="font-bold text-xs">
-                        {report.validationNotes}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* AI AUDIT & CONVERSION LOG */}
-                  <div className="border-2 border-black bg-white p-2 md:p-3 overflow-x-auto">
-                    <h4 className="text-sm font-black uppercase mb-2 pb-1 border-b-2 border-black">
-                      🔬 AI AUDIT & CONVERSION LOG
-                    </h4>
-
-                    {/* Unit Conversions */}
-                    {report?.unitConversions && report.unitConversions.length > 0 ? (
-                      <div className="mb-6">
-                        <p className="font-black text-sm uppercase mb-3 text-green-700">
-                          ✓ SUCCESSFUL CONVERSIONS ({report.unitConversions.length})
-                        </p>
-                        <div className="space-y-2">
-                          {report.unitConversions.map(
-                            (conversion: string, idx: number) => (
-                              <div
-                                key={idx}
-                                className="bg-green-100 border-2 border-green-600 p-3 font-mono text-xs md:text-sm"
-                              >
-                                <span className="font-black text-green-700">✔ PASS:</span>{" "}
-                                {conversion}
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mb-6 bg-gray-100 border-2 border-gray-400 p-3 font-mono text-xs md:text-sm">
-                        <span className="text-gray-600">— No unit conversions required</span>
-                      </div>
-                    )}
-
-                    {/* Measurement Precision Errors */}
-                    {report?.measurementPrecisionErrors &&
-                    report.measurementPrecisionErrors.length > 0 ? (
-                      <div>
-                        <p className="font-black text-sm uppercase mb-3 text-white bg-red-600 p-2 border-2 border-red-800">
-                          ⚠ CRITICAL DEALBREAKER ({report.measurementPrecisionErrors.length})
-                        </p>
-                        <div className="space-y-2">
-                          {report.measurementPrecisionErrors.map(
-                            (error: string, idx: number) => (
-                              <div
-                                key={idx}
-                                className="bg-red-600 border-4 border-red-800 p-3 font-mono text-xs md:text-sm text-white font-black"
-                              >
-                                ✗ FAIL: {error}
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-green-50 border-2 border-green-400 p-3 font-mono text-xs md:text-sm">
-                        <span className="text-green-700 font-bold">
-                          — No measurement precision errors detected
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  <pre className="font-mono text-[11px] text-zinc-650 dark:text-zinc-300 p-4 overflow-auto max-h-48 scrollbar-thin leading-relaxed">
+                    <code>{rawText}</code>
+                  </pre>
                 </div>
               );
-            })}
+            }
+            return (
+              <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-3.5 bg-zinc-50/50 dark:bg-zinc-950/30 max-h-32 overflow-y-auto">
+                <ul className="space-y-1.5">
+                  {baseReqs.map((req, idx) => (
+                    <li key={idx} className="text-xs text-zinc-650 dark:text-zinc-300 font-medium flex gap-2">
+                      <span className="text-blue-600 dark:text-blue-400 font-bold select-none">•</span>
+                      <span>{req}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()
+        ) : (
+          <div className="border border-amber-200 bg-amber-500/5 text-amber-700 dark:text-amber-400 rounded-lg p-3 text-xs font-medium uppercase tracking-tight">
+            No base requirements uploaded
           </div>
         )}
+      </div>
 
-        {/* Adjudication Results (if session is closed) */}
-        {session?.status === "closed" && session?.adjudicationResult && (
-          <div className="space-y-3 mt-6 mb-6">
-            <div className="bg-[#2D5A3D] border-8 border-black p-4 md:p-8 lg:p-12 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] text-white">
-              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter mb-6">
-                FINAL ADJUDICATION & VENDOR RANKING
-              </h2>
+      {/* Comparison Matrix */}
+      {quotations.length > 0 ? (
+        <div className="w-full overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+          <table className="w-full border-collapse text-left text-xs">
+            <thead>
+              <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50 font-mono text-[10px] tracking-wider uppercase text-zinc-400 dark:text-zinc-500 select-none">
+                <th className="p-3.5 font-bold">Vendor</th>
+                <th className="p-3.5 font-bold">Total Cost</th>
+                <th className="p-3.5 font-bold text-center">Compliance</th>
+                <th className="p-3.5 font-bold">Matched Specs</th>
+                <th className="p-3.5 font-bold">Missing Specs</th>
+                <th className="p-3.5 font-bold">Delivery</th>
+                <th className="p-3.5 font-bold text-center">Recommendation</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {quotations.map((quote) => {
+                const report = quote.finalJsonReport;
+                const matched = report?.matchedRequirements || [];
+                const missing = report?.missingRequirements || [];
+                const recommendation = report?.overallRecommendation || "N/A";
+                const score = quote.parsedData?.complianceScore || 0;
 
-              {/* Best Vendor Highlight */}
-              {session.adjudicationResult.bestVendor && (
-                <div className="bg-green-400 border-4 border-black text-black p-6 mb-6">
-                  <p className="text-sm font-black uppercase mb-2">🏆 BEST VENDOR</p>
-                  <p className="text-2xl font-black uppercase mb-2">
-                    {session.adjudicationResult.bestVendor.vendorName}
-                  </p>
-                  <p className="text-xl font-black mb-2">
-                    Overall Score: {session.adjudicationResult.bestVendor.overallScore}/100
-                  </p>
-                  <p className="font-bold text-sm">
-                    {session.adjudicationResult.bestVendor.rationale}
-                  </p>
+                return (
+                  <tr 
+                    key={quote.id} 
+                    className="hover:bg-zinc-50/50 dark:hover:bg-zinc-850/30 transition-colors"
+                  >
+                    <td className="p-3.5 font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-tight whitespace-nowrap">
+                      {quote.vendorName}
+                    </td>
+                    <td className="p-3.5 font-mono text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                      {quote.finalJsonReport?.currency || "INR"} {quote.parsedData?.totalCost?.toLocaleString() || "0"}
+                    </td>
+                    <td className="p-3.5 text-center whitespace-nowrap">
+                      <span
+                        className={`font-mono text-xs font-bold px-2 py-0.5 rounded-md border ${
+                          score >= 80
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                            : score >= 50
+                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                            : "bg-rose-500/10 text-rose-600 dark:text-rose-500 border border-rose-500/20"
+                        }`}
+                      >
+                        {score}%
+                      </span>
+                    </td>
+                    <td className="p-3.5 max-w-[280px]">
+                      <div className="flex flex-wrap gap-1 max-w-full">
+                        {matched.length > 0 ? (
+                          <>
+                            {matched.slice(0, 4).map((spec: string, idx: number) => (
+                              <span key={idx} className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15 px-2 py-0.5 rounded truncate max-w-full" title={spec}>
+                                {spec}
+                              </span>
+                            ))}
+                            {matched.length > 4 && (
+                              <span className="text-[9px] font-mono font-bold text-zinc-400 px-1.5 py-0.5 select-none bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded">
+                                +{matched.length - 4} more
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-[11px] text-zinc-400 select-none">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3.5 max-w-[280px]">
+                      <div className="flex flex-wrap gap-1 max-w-full">
+                        {missing.length > 0 ? (
+                          <>
+                            {missing.slice(0, 4).map((spec: string, idx: number) => (
+                              <span key={idx} className="text-[10px] bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/15 px-2 py-0.5 rounded truncate max-w-full" title={spec}>
+                                {spec}
+                              </span>
+                            ))}
+                            {missing.length > 4 && (
+                              <span className="text-[9px] font-mono font-bold text-zinc-400 px-1.5 py-0.5 select-none bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded">
+                                +{missing.length - 4} more
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-[11px] text-zinc-400 select-none">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3.5 text-zinc-600 dark:text-zinc-400 font-medium whitespace-nowrap">
+                      {report?.deliveryTime || "N/A"}
+                    </td>
+                    <td className="p-3.5 text-center whitespace-nowrap">
+                      <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold tracking-widest uppercase inline-flex border leading-none ${getRecommendationColor(recommendation)}`}>
+                        {recommendation}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl p-10 text-center shadow-sm">
+          <p className="font-mono text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+            No Analyzed Quotations Yet
+          </p>
+          <p className="text-xs text-zinc-500 mt-2">
+            Upload vendor quotations inside the session workspace to begin analysis.
+          </p>
+        </div>
+      )}
+
+      {/* Detailed Reports */}
+      {quotations.length > 0 && (
+        <div className="space-y-6 mt-2 print:mt-4">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 select-none">
+            Detailed Quotation Analysis
+          </h2>
+
+          {quotations.map((quote) => {
+            const report = quote.finalJsonReport;
+
+            return (
+              <div
+                key={quote.id}
+                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm flex flex-col gap-5 print:break-inside-avoid print:bg-white"
+              >
+                <div className="flex justify-between items-center pb-3 border-b border-zinc-200 dark:border-zinc-800">
+                  <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50 uppercase tracking-tight">
+                    {quote.vendorName}
+                  </h3>
+                  <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold tracking-widest uppercase inline-flex border leading-none ${getRecommendationColor(report?.overallRecommendation)}`}>
+                    {report?.overallRecommendation || "N/A"}
+                  </span>
                 </div>
-              )}
 
-              {/* Vendor Ranking Table */}
-              {session.adjudicationResult.ranking && session.adjudicationResult.ranking.length > 0 && (
-                <div className="mb-8 overflow-x-auto">
-                  <div className="text-white space-y-3">
-                    {session.adjudicationResult.ranking.map(
-                      (vendor: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className={`border-4 border-white p-4 ${
-                            vendor.recommendation === "HIGHLY_RECOMMENDED"
-                              ? "bg-green-700"
-                              : vendor.recommendation === "RECOMMENDED"
-                              ? "bg-blue-700"
-                              : vendor.recommendation === "CONDITIONAL"
-                              ? "bg-yellow-600"
-                              : "bg-red-700"
+                {/* Precision Validation Section */}
+                {(() => {
+                  const precisionAnalysis = analyzePrecision(report || {});
+                  const precisionStatus = quote.finalJsonReport?.precisionValidation || "UNKNOWN";
+                  const hasPrecisionIssues = precisionAnalysis.criticalIssues > 0;
+                  
+                  return (
+                    <div
+                      className={`border rounded-lg p-4 transition-all ${
+                        hasPrecisionIssues
+                          ? "border-rose-500/25 bg-rose-500/5 text-rose-900 dark:text-rose-100"
+                          : "border-emerald-500/25 bg-emerald-500/5 text-emerald-900 dark:text-emerald-100"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 leading-none">
+                          Measurement Precision Validation
+                        </p>
+                        <span
+                          className={`px-2 py-0.5 text-[9px] font-mono font-bold leading-none uppercase rounded border ${
+                            precisionStatus === "PASS"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                              : precisionStatus === "FAIL"
+                              ? "bg-rose-500/10 text-rose-600 dark:text-rose-500 border-rose-500/20"
+                              : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                           }`}
                         >
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <p className="text-lg font-black uppercase">
-                                Rank #{vendor.rank} - {vendor.vendorName}
+                          {precisionStatus}
+                        </span>
+                      </div>
+
+                      <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 leading-relaxed">
+                        {precisionAnalysis.summary}
+                      </p>
+
+                      {precisionAnalysis.totalIssues > 0 && (
+                        <div className="space-y-2 mt-3 border-t border-zinc-200/50 dark:border-zinc-800 pt-3">
+                          {precisionAnalysis.issues.map((issue, idx) => (
+                            <div
+                              key={idx}
+                              className="text-xs font-mono border-l-2 border-zinc-300 dark:border-zinc-700 pl-3 py-0.5"
+                            >
+                              <p className="uppercase tracking-wide font-bold text-zinc-800 dark:text-zinc-200 text-[10px]">
+                                [{issue.severity}] {issue.type}
                               </p>
-                              <p className="text-2xl font-black">
-                                {vendor.overallScore}/100
-                              </p>
+                              <p className="text-zinc-400 dark:text-zinc-400 mt-0.5 text-xs">{issue.description}</p>
+                              {issue.requirement !== "See measurementPrecisionErrors" && (
+                                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 leading-none">
+                                  Req: {issue.requirement} | Vendor: {issue.vendor}
+                                </p>
+                              )}
                             </div>
-                            <span className="bg-white text-black px-3 py-1 font-black uppercase text-sm border-2 border-black">
+                          ))}
+                        </div>
+                      )}
+
+                      {precisionAnalysis.totalIssues === 0 && (
+                        <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400/80 mt-1 leading-none">
+                          All measurements meet requirements within tolerance.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Key Metrics Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="border border-zinc-150 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                    <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
+                      Total Cost
+                    </p>
+                    <p className="text-sm font-bold font-mono leading-none text-zinc-800 dark:text-zinc-200">
+                      {quote.finalJsonReport?.currency || "INR"} {quote.parsedData?.totalCost?.toLocaleString() || "0"}
+                    </p>
+                  </div>
+
+                  <div className="border border-zinc-150 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                    <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
+                      Compliance Score
+                    </p>
+                    <p className="text-sm font-bold font-mono leading-none text-zinc-800 dark:text-zinc-200">
+                      {quote.parsedData?.complianceScore || 0}%
+                    </p>
+                  </div>
+
+                  <div className="border border-zinc-150 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                    <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
+                      Delivery
+                    </p>
+                    <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate">
+                      {report?.deliveryTime || "Not specified"}
+                    </p>
+                  </div>
+
+                  <div className="border border-zinc-150 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                    <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
+                      Certifications
+                    </p>
+                    <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate" title={report?.certifications?.join(", ") || "None listed"}>
+                      {report?.certifications?.length
+                        ? report.certifications.join(", ")
+                        : "None listed"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Critical Issues Alert Box */}
+                {report?.criticalIssues && report.criticalIssues.length > 0 && (
+                  <div className="border border-rose-500/25 bg-rose-500/5 rounded-lg p-3 text-rose-900 dark:text-rose-200">
+                    <p className="text-[10px] font-mono font-bold uppercase tracking-wider mb-2 text-rose-600 dark:text-rose-400">
+                      ⚠ Critical Issues Identified
+                    </p>
+                    <ul className="space-y-1 text-xs font-semibold">
+                      {report.criticalIssues.map((issue: string, idx: number) => (
+                        <li key={idx} className="flex gap-1.5 items-start">
+                          <span className="text-rose-500 font-bold select-none">•</span>
+                          <span>{issue}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Validator Notes Box */}
+                {report?.validationNotes && (
+                  <div className="border border-zinc-150 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/30 dark:bg-zinc-950/10 text-xs">
+                    <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
+                      Validator Notes
+                    </p>
+                    <p className="font-medium text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                      {report.validationNotes}
+                    </p>
+                  </div>
+                )}
+
+                {/* AI Audit & Conversion Logs */}
+                <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-950/10 p-4">
+                  <h4 className="text-xs font-mono font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 pb-2 border-b border-zinc-200 dark:border-zinc-800 mb-3 select-none">
+                    🔬 AI Audit & Conversion Logs
+                  </h4>
+
+                  {/* Unit Conversions */}
+                  {report?.unitConversions && report.unitConversions.length > 0 ? (
+                    <div className="mb-4">
+                      <p className="text-[10px] font-mono font-bold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase mb-2">
+                        ✓ Successful Conversions ({report.unitConversions.length})
+                      </p>
+                      <div className="space-y-1.5">
+                        {report.unitConversions.map(
+                          (conversion: string, idx: number) => (
+                            <div
+                              key={idx}
+                              className="bg-emerald-500/5 border border-emerald-500/20 p-2.5 rounded-md font-mono text-xs text-emerald-800 dark:text-emerald-300 leading-tight"
+                            >
+                              <span className="font-bold mr-1.5">✔ PASS:</span>
+                              {conversion}
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-4 bg-zinc-100/50 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-800 p-2.5 rounded-md font-mono text-xs text-zinc-400 select-none">
+                      — No unit conversions required
+                    </div>
+                  )}
+
+                  {/* Measurement Precision Errors */}
+                  {report?.measurementPrecisionErrors &&
+                  report.measurementPrecisionErrors.length > 0 ? (
+                    <div>
+                      <p className="text-[10px] font-mono font-bold tracking-wider text-rose-600 dark:text-rose-400 uppercase mb-2">
+                        ⚠ Critical Dealbreakers ({report.measurementPrecisionErrors.length})
+                      </p>
+                      <div className="space-y-1.5">
+                        {report.measurementPrecisionErrors.map(
+                          (error: string, idx: number) => (
+                            <div
+                              key={idx}
+                              className="bg-rose-500/5 border border-rose-500/20 p-2.5 rounded-md font-mono text-xs text-rose-700 dark:text-rose-300 leading-tight font-semibold"
+                            >
+                              <span className="font-bold mr-1.5">✗ FAIL:</span>
+                              {error}
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-emerald-500/5 border border-emerald-500/10 p-2.5 rounded-md font-mono text-xs text-emerald-600/70 dark:text-emerald-400/70 select-none">
+                      — No measurement precision errors detected
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Adjudication Results */}
+      {session?.status === "closed" && session?.adjudicationResult && (
+        <div className="space-y-6 mt-2 print:mt-4 print:break-inside-avoid">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-6">
+            <div>
+              <h2 className="text-lg md:text-xl font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-50">
+                Final Adjudication & Vendor Ranking
+              </h2>
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 font-mono uppercase leading-none select-none">
+                Closed Session Executive Review
+              </p>
+            </div>
+
+            {/* Best Vendor Highlight */}
+            {session.adjudicationResult.bestVendor && (
+              <div className="relative border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-500/2 rounded-xl p-5 shadow-sm overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+                
+                <div className="flex items-center gap-1.5 text-[9px] font-mono font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mb-2">
+                  <span>🏆 Recommended Prime Vendor</span>
+                </div>
+                <p className="text-lg md:text-xl font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-50">
+                  {session.adjudicationResult.bestVendor.vendorName}
+                </p>
+                
+                <div className="flex items-baseline gap-1 mt-2 mb-3">
+                  <span className="text-[9px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase">Composite Score:</span>
+                  <span className="text-base font-mono font-bold leading-none text-emerald-600 dark:text-emerald-400 ml-1">
+                    {session.adjudicationResult.bestVendor.overallScore}
+                  </span>
+                  <span className="text-[9px] font-mono leading-none text-zinc-400">/100</span>
+                </div>
+
+                <p className="text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-300 leading-relaxed border-t border-zinc-200/50 dark:border-zinc-800 pt-3">
+                  {session.adjudicationResult.bestVendor.rationale}
+                </p>
+              </div>
+            )}
+
+            {/* Vendor Ranking Table */}
+            {session.adjudicationResult.ranking && session.adjudicationResult.ranking.length > 0 && (
+              <div className="space-y-3 mt-2">
+                <p className="text-[10px] font-mono font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase select-none">
+                  Comparative Adjudication Ranking Matrix
+                </p>
+                <div className="flex flex-col gap-4">
+                  {session.adjudicationResult.ranking.map((vendor: any, idx: number) => {
+                    const recColor = 
+                      vendor.recommendation === "HIGHLY_RECOMMENDED"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                        : vendor.recommendation === "RECOMMENDED"
+                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                        : vendor.recommendation === "CONDITIONAL"
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                        : "bg-rose-500/10 text-rose-600 dark:text-rose-500 border border-rose-500/20";
+
+                    return (
+                      <div
+                        key={idx}
+                        className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 bg-white dark:bg-zinc-950/40 shadow-sm flex flex-col gap-4"
+                      >
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                          <div>
+                            <p className="text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none select-none">
+                              Rank #{vendor.rank}
+                            </p>
+                            <p className="text-base font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-100 mt-1">
+                              {vendor.vendorName}
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center gap-3 self-stretch sm:self-auto justify-between select-none">
+                            <div className="flex items-baseline">
+                              <span className="text-base font-mono font-bold leading-none text-zinc-850 dark:text-zinc-200">
+                                {vendor.overallScore}
+                              </span>
+                              <span className="text-[9px] font-mono leading-none text-zinc-400">/100</span>
+                            </div>
+                            <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold tracking-widest uppercase border leading-none ${recColor}`}>
                               {vendor.recommendation}
                             </span>
                           </div>
-
-                          <div className="grid grid-cols-4 gap-2 mb-3 text-sm">
-                            <div className="bg-black bg-opacity-30 p-2">
-                              <p className="text-xs font-bold opacity-80">COMPLIANCE</p>
-                              <p className="text-lg font-black">
-                                {vendor.scoringBreakdown.compliance}
-                              </p>
-                            </div>
-                            <div className="bg-black bg-opacity-30 p-2">
-                              <p className="text-xs font-bold opacity-80">COST</p>
-                              <p className="text-lg font-black">
-                                {vendor.scoringBreakdown.cost}
-                              </p>
-                            </div>
-                            <div className="bg-black bg-opacity-30 p-2">
-                              <p className="text-xs font-bold opacity-80">PRECISION</p>
-                              <p className="text-lg font-black">
-                                {vendor.scoringBreakdown.precision}
-                              </p>
-                            </div>
-                            <div className="bg-black bg-opacity-30 p-2">
-                              <p className="text-xs font-bold opacity-80">DELIVERY</p>
-                              <p className="text-lg font-black">
-                                {vendor.scoringBreakdown.delivery}
-                              </p>
-                            </div>
-                          </div>
-
-                          <p className="font-bold text-sm mb-2">{vendor.rationale}</p>
-
-                          {vendor.criticalGaps && vendor.criticalGaps.length > 0 && (
-                            <div className="bg-red-900 bg-opacity-50 p-2 mt-2">
-                              <p className="text-xs font-bold uppercase mb-1">Critical Gaps:</p>
-                              <ul className="text-xs space-y-1">
-                                {vendor.criticalGaps.map((gap: string, gapIdx: number) => (
-                                  <li key={gapIdx}>• {gap}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
                         </div>
-                      )
-                    )}
-                  </div>
+
+                        {/* Score Breakdown Grid */}
+                        <div className="grid grid-cols-4 gap-2 bg-zinc-55/50 dark:bg-zinc-950/30 border border-zinc-150 dark:border-zinc-800 rounded-lg p-2.5 text-center">
+                          <div>
+                            <p className="text-[9px] font-mono font-bold tracking-tight text-zinc-400 dark:text-zinc-500 uppercase">Compliance</p>
+                            <p className="text-sm font-bold font-mono leading-none mt-1 text-zinc-800 dark:text-zinc-200">
+                              {vendor.scoringBreakdown.compliance}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-mono font-bold tracking-tight text-zinc-400 dark:text-zinc-500 uppercase">Cost</p>
+                            <p className="text-sm font-bold font-mono leading-none mt-1 text-zinc-800 dark:text-zinc-200">
+                              {vendor.scoringBreakdown.cost}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-mono font-bold tracking-tight text-zinc-400 dark:text-zinc-500 uppercase">Precision</p>
+                            <p className="text-sm font-bold font-mono leading-none mt-1 text-zinc-800 dark:text-zinc-200">
+                              {vendor.scoringBreakdown.precision}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-mono font-bold tracking-tight text-zinc-400 dark:text-zinc-500 uppercase">Delivery</p>
+                            <p className="text-sm font-bold font-mono leading-none mt-1 text-zinc-800 dark:text-zinc-200">
+                              {vendor.scoringBreakdown.delivery}
+                            </p>
+                          </div>
+                        </div>
+
+                        <p className="text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-350 leading-relaxed">
+                          {vendor.rationale}
+                        </p>
+
+                        {vendor.criticalGaps && vendor.criticalGaps.length > 0 && (
+                          <div className="border border-rose-500/20 bg-rose-500/5 rounded-lg p-2.5">
+                            <p className="text-[9px] font-mono font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1">
+                              Critical Gaps Identified:
+                            </p>
+                            <ul className="text-xs text-rose-800 dark:text-rose-350 font-semibold space-y-0.5">
+                              {vendor.criticalGaps.map((gap: string, gapIdx: number) => (
+                                <li key={gapIdx} className="flex gap-1 items-start">
+                                  <span className="text-rose-500 font-bold select-none">•</span>
+                                  <span>{gap}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-
-              {/* Comparative Analysis */}
-              {session.adjudicationResult && (
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Cost Analysis */}
-                  {session.adjudicationResult.costAnalysis && (
-                    <div className="bg-black bg-opacity-30 border-2 border-white p-4">
-                      <p className="text-sm font-black uppercase mb-3">Cost Analysis</p>
-                      <div className="space-y-2 text-sm font-bold">
-                        <p>
-                          Lowest: {session.adjudicationResult.costAnalysis.lowestCost?.vendor}{" "}
-                          (${session.adjudicationResult.costAnalysis.lowestCost?.cost?.toLocaleString()})
-                        </p>
-                        <p>Average: ${session.adjudicationResult.costAnalysis.averageCost?.toLocaleString()}</p>
-                        <p>
-                          Highest: {session.adjudicationResult.costAnalysis.highestCost?.vendor}{" "}
-                          (${session.adjudicationResult.costAnalysis.highestCost?.cost?.toLocaleString()})
-                        </p>
-                        <p className="text-yellow-300 font-black">
-                          Spread: {session.adjudicationResult.costAnalysis.costDifferencePercent}%
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Compliance Analysis */}
-                  {session.adjudicationResult.complianceAnalysis && (
-                    <div className="bg-black bg-opacity-30 border-2 border-white p-4">
-                      <p className="text-sm font-black uppercase mb-3">Compliance Tiers</p>
-                      <div className="space-y-2 text-sm font-bold">
-                        {session.adjudicationResult.complianceAnalysis.fullCompliance?.length > 0 && (
-                          <p className="text-green-300">
-                            Full: {session.adjudicationResult.complianceAnalysis.fullCompliance.join(", ")}
-                          </p>
-                        )}
-                        {session.adjudicationResult.complianceAnalysis.partialCompliance?.length > 0 && (
-                          <p className="text-yellow-300">
-                            Partial: {session.adjudicationResult.complianceAnalysis.partialCompliance.join(", ")}
-                          </p>
-                        )}
-                        {session.adjudicationResult.complianceAnalysis.nonCompliant?.length > 0 && (
-                          <p className="text-red-300">
-                            Non-compliant: {session.adjudicationResult.complianceAnalysis.nonCompliant.join(", ")}
-                          </p>
-                        )}
-                        <p>Average Score: {session.adjudicationResult.complianceAnalysis.averageComplianceScore}%</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Precision Analysis */}
-                  {session.adjudicationResult.precisionAnalysis && (
-                    <div className="bg-black bg-opacity-30 border-2 border-white p-4">
-                      <p className="text-sm font-black uppercase mb-3">Measurement Precision</p>
-                      <div className="space-y-2 text-sm font-bold">
-                        {session.adjudicationResult.precisionAnalysis.precisionPass?.length > 0 && (
-                          <p className="text-green-300">
-                            Pass: {session.adjudicationResult.precisionAnalysis.precisionPass.join(", ")}
-                          </p>
-                        )}
-                        {session.adjudicationResult.precisionAnalysis.precisionFail?.length > 0 && (
-                          <p className="text-red-300">
-                            Fail: {session.adjudicationResult.precisionAnalysis.precisionFail.join(", ")}
-                          </p>
-                        )}
-                        {session.adjudicationResult.precisionAnalysis.precisionUnknown?.length > 0 && (
-                          <p className="text-yellow-300">
-                            Unknown: {session.adjudicationResult.precisionAnalysis.precisionUnknown.join(", ")}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Delivery Analysis */}
-                  {session.adjudicationResult.deliveryAnalysis && (
-                    <div className="bg-black bg-opacity-30 border-2 border-white p-4">
-                      <p className="text-sm font-black uppercase mb-3">Delivery Timeline</p>
-                      <div className="space-y-2 text-sm font-bold">
-                        <p>Best: {session.adjudicationResult.deliveryAnalysis.bestDelivery}</p>
-                        <p>Worst: {session.adjudicationResult.deliveryAnalysis.worstDelivery}</p>
-                        <p>
-                          Average:{" "}
-                          {typeof session.adjudicationResult.deliveryAnalysis.averageDeliveryDays === "number"
-                            ? `${session.adjudicationResult.deliveryAnalysis.averageDeliveryDays} days`
-                            : session.adjudicationResult.deliveryAnalysis.averageDeliveryDays}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Adjudication Notes */}
-              {session.adjudicationResult.adjudicationNotes && (
-                <div className="mt-6 bg-black bg-opacity-30 border-2 border-white p-4">
-                  <p className="text-sm font-black uppercase mb-2">Executive Summary</p>
-                  <p className="font-bold">{session.adjudicationResult.adjudicationNotes}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Disclaimer Box */}
-        <div
-          className="border-4 border-black bg-red-400 p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
-          role="alert"
-        >
-          <p className="text-2xl font-black uppercase mb-4 tracking-tighter">
-            ⚠ CRITICAL DISCLAIMER
-          </p>
-
-          <div className="space-y-3 text-black font-bold text-base leading-relaxed">
-            <p>
-              THIS ANALYSIS IS ALGORITHMICALLY GENERATED BY LARGE LANGUAGE MODELS
-              (LLM) WITH MULTI-STAGE VALIDATION PIPELINE.
-            </p>
-
-            <p>
-              WHILE RIGOROUS, THIS ASSESSMENT MAY CONTAIN ERRORS, OMISSIONS, OR
-              MISINTERPRETATIONS.
-            </p>
-
-            <p>
-              HUMAN VERIFICATION, LEGAL REVIEW, AND PROCUREMENT OFFICER
-              AUTHORIZATION ARE MANDATORY BEFORE ANY CONTRACT EXECUTION.
-            </p>
-
-            <p className="bg-white border-4 border-black p-3">
-              DO NOT RELY SOLELY ON THIS REPORT FOR PROCUREMENT DECISIONS.
-            </p>
-
-            <p>
-              FINAL ADJUDICATION AUTHORITY: PROCUREMENT OFFICER OF RECORD
-            </p>
-          </div>
-        </div>
-
-        {/* Export/Print Footer */}
-        <div className="flex flex-col items-center justify-center gap-6 mt-12 pb-12 w-full border-t-4 border-black pt-8">
-          <button
-            onClick={() => window.print()}
-            className="bg-black text-white px-8 py-4 font-black uppercase border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:bg-white hover:text-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-xl"
-          >
-            PRINT REPORT
-          </button>
-
-          <p className="text-sm font-bold opacity-70">
-            {session?.status === "closed" && session?.adjudicatedAt ? (
-              <>
-                Report generated: {new Date(session.adjudicatedAt).toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric"
-                })} {new Date(session.adjudicatedAt).toLocaleTimeString("en-GB", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                  hour12: false
-                })}
-              </>
-            ) : (
-              <>
-                LIVE CLOCK: {currentTime || "Loading..."}
-              </>
+              </div>
             )}
+
+            {/* Comparative Analysis Graphs placeholder */}
+            {session.adjudicationResult && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                {/* Cost Analysis */}
+                {session.adjudicationResult.costAnalysis && (
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl bg-white dark:bg-zinc-950/20">
+                    <p className="text-[9px] font-mono font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase mb-3 border-b border-zinc-200 dark:border-zinc-800 pb-1.5">
+                      Cost Matrix Analysis
+                    </p>
+                    <div className="space-y-2 text-xs font-semibold">
+                      <div className="flex justify-between items-center">
+                        <span className="text-zinc-500">Lowest Quote:</span>
+                        <span className="font-mono leading-none text-zinc-800 dark:text-zinc-200">
+                          {session.adjudicationResult.costAnalysis.lowestCost?.vendor}{" "}
+                          ({session.adjudicationResult.costAnalysis.lowestCost?.cost?.toLocaleString()})
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-zinc-500">Average Quote:</span>
+                        <span className="font-mono leading-none text-zinc-800 dark:text-zinc-200">
+                          INR {session.adjudicationResult.costAnalysis.averageCost?.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-zinc-500">Highest Quote:</span>
+                        <span className="font-mono leading-none text-zinc-800 dark:text-zinc-200">
+                          {session.adjudicationResult.costAnalysis.highestCost?.vendor}{" "}
+                          ({session.adjudicationResult.costAnalysis.highestCost?.cost?.toLocaleString()})
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center border-t border-zinc-150 dark:border-zinc-800 pt-2 mt-2">
+                        <span className="text-zinc-500 font-bold">Total Spread:</span>
+                        <span className="font-mono leading-none text-amber-600 dark:text-amber-400 font-bold">
+                          {session.adjudicationResult.costAnalysis.costDifferencePercent}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Compliance Analysis */}
+                {session.adjudicationResult.complianceAnalysis && (
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl bg-white dark:bg-zinc-950/20">
+                    <p className="text-[9px] font-mono font-bold tracking-widest text-zinc-455 dark:text-zinc-500 uppercase mb-3 border-b border-zinc-200 dark:border-zinc-800 pb-1.5 select-none">
+                      Compliance Tiers
+                    </p>
+                    <div className="space-y-3.5 text-xs">
+                      {session.adjudicationResult.complianceAnalysis.fullCompliance?.length > 0 && (
+                        <div className="flex flex-col gap-1.5 border-b border-zinc-200 dark:border-zinc-800/40 pb-2">
+                          <span className="text-emerald-605 dark:text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider">Full Compliance</span>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {session.adjudicationResult.complianceAnalysis.fullCompliance.map((vendor: string, vidx: number) => (
+                              <span key={vidx} className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15 px-2 py-0.5 rounded text-[10px] font-bold tracking-tight">{vendor}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {session.adjudicationResult.complianceAnalysis.partialCompliance?.length > 0 && (
+                        <div className="flex flex-col gap-1.5 border-b border-zinc-200 dark:border-zinc-800/40 pb-2">
+                          <span className="text-amber-600 dark:text-amber-400 font-mono text-[9px] font-bold uppercase tracking-wider">Partial Compliance</span>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {session.adjudicationResult.complianceAnalysis.partialCompliance.map((vendor: string, vidx: number) => (
+                              <span key={vidx} className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/15 px-2 py-0.5 rounded text-[10px] font-bold tracking-tight">{vendor}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {session.adjudicationResult.complianceAnalysis.nonCompliant?.length > 0 && (
+                        <div className="flex flex-col gap-1.5 border-b border-zinc-200 dark:border-zinc-800/40 pb-2">
+                          <span className="text-rose-600 dark:text-rose-400 font-mono text-[9px] font-bold uppercase tracking-wider">Non-compliant</span>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {session.adjudicationResult.complianceAnalysis.nonCompliant.map((vendor: string, vidx: number) => (
+                              <span key={vidx} className="bg-rose-500/10 text-rose-600 dark:text-rose-455 border border-rose-500/15 px-2 py-0.5 rounded text-[10px] font-bold tracking-tight">{vendor}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center pt-2 select-none">
+                        <span className="text-zinc-500 font-medium">Average Compliance:</span>
+                        <span className="font-mono leading-none text-zinc-900 dark:text-zinc-100 font-extrabold text-sm">
+                          {session.adjudicationResult.complianceAnalysis.averageComplianceScore}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Adjudication Notes */}
+            {session.adjudicationResult.adjudicationNotes && (
+              <div className="border border-zinc-200 dark:border-zinc-800 p-4 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20 text-xs mt-2">
+                <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-2 select-none">
+                  Executive Summary & Notes
+                </p>
+                <p className="font-medium text-zinc-650 dark:text-zinc-300 leading-relaxed">
+                  {session.adjudicationResult.adjudicationNotes}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Disclaimer Box */}
+      <div
+        className="border border-rose-500/25 bg-rose-500/5 rounded-xl p-5 md:p-6 shadow-sm"
+        role="alert"
+      >
+        <div className="flex items-center gap-2 mb-3 select-none">
+          <span className="text-rose-600 dark:text-rose-400 text-lg">⚠</span>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+            Critical Compliance & AI Disclaimer
+          </h3>
+        </div>
+
+        <div className="space-y-3.5 text-zinc-400 dark:text-zinc-400 font-medium text-xs leading-relaxed">
+          <p>
+            This analysis is algorithmically generated by large language models (LLM) incorporating a multi-stage precision validation pipeline.
+          </p>
+
+          <p>
+            While rigorous, this assessment may contain algorithmic inaccuracies, omissions, or misinterpretations of complex technical parameters.
+          </p>
+
+          <p>
+            Mandatory review by a qualified procurement officer and contractual legal counsel is required before committing to any vendor engagement or agreement.
+          </p>
+
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3.5 text-rose-600 dark:text-rose-400 font-bold text-xs select-none shadow-sm leading-relaxed">
+            ⚠ WARNING: Do not under any circumstances rely solely on this report for commercial decision-making.
+          </div>
+
+          <p className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mt-3.5 select-none font-bold">
+            FINAL ADJUDICATION AUTHORITY: PROCUREMENT OFFICER OF RECORD
           </p>
         </div>
+      </div>
+
+      {/* Export/Print Footer */}
+      <div className="flex flex-col items-center justify-center gap-4 mt-8 pb-8 w-full border-t border-zinc-200 dark:border-zinc-800 pt-8 print:hidden select-none">
+        <button
+          onClick={() => window.print()}
+          className="inline-flex items-center gap-2.5 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer active:scale-95 duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          Print Audit Report
+        </button>
+
+        <p className="text-[10px] font-mono font-bold leading-none text-zinc-400 dark:text-zinc-500 mt-2 select-none">
+          {session?.status === "closed" && session?.adjudicatedAt ? (
+            <>
+              Report generated: {new Date(session.adjudicatedAt).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+              })} {new Date(session.adjudicatedAt).toLocaleTimeString("en-GB", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false
+              })}
+            </>
+          ) : (
+            <>
+              SYS_CLOCK // {currentTime || "SYNCING..."}
+            </>
+          )}
+        </p>
       </div>
     </div>
   );

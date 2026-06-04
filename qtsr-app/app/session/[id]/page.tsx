@@ -37,6 +37,7 @@ export default function SessionWorkspacePage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
+        setUser(null); // Resolves permission denied error by unsubscribing before auth token invalidation
         router.push("/login");
       } else {
         setUser(currentUser);
@@ -537,101 +538,143 @@ export default function SessionWorkspacePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FFFDD0] flex items-center justify-center">
-        <p className="text-xl font-bold">LOADING WORKSPACE...</p>
+      <div className="w-full text-zinc-900 dark:text-zinc-50 font-sans antialiased animate-pulse">
+        <div className="w-full flex flex-col gap-6">
+          {/* Header Skeleton */}
+          <div className="h-24 bg-white/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-white/10 rounded-xl flex items-center justify-between p-5">
+            <div className="space-y-2.5 w-1/3">
+              <div className="h-6 bg-zinc-300 dark:bg-zinc-850 rounded w-3/4 animate-pulse" />
+              <div className="h-3 bg-zinc-200 dark:bg-zinc-900 rounded w-1/2" />
+            </div>
+            <div className="h-10 bg-zinc-300 dark:bg-zinc-850 rounded w-24 animate-pulse" />
+          </div>
+
+          {/* Two Column Workspace Grid Skeleton */}
+          <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 w-full">
+            <div className="col-span-1 h-[320px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5" />
+            <div className="col-span-2 h-[450px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl p-5" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#FFFDD0] flex items-center justify-center">
-        <p className="text-xl font-bold">SESSION NOT FOUND</p>
+      <div className="h-full w-full min-h-[400px] flex items-center justify-center font-sans text-zinc-900 dark:text-zinc-50 select-none">
+        <div className="text-center flex flex-col items-center gap-4 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-10 max-w-sm">
+          <svg className="w-10 h-10 text-zinc-300 dark:text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">Session Not Found</h2>
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-widest leading-normal">This procurement workstation path is invalid or has been deleted.</p>
+          </div>
+          <button 
+            onClick={() => router.push("/dashboard")} 
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[10px] font-bold uppercase tracking-wider active:scale-95 duration-150 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600 cursor-pointer shadow-sm"
+          >
+            Back to Dashboard
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFDD0] text-black font-mono p-4 md:p-8 lg:p-12 overflow-x-hidden">
-      <div className="max-w-[1600px] mx-auto flex flex-col gap-8 md:gap-12">
-        {/* Header - Responsive Layout */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
-          <div className="bg-white border-8 border-black p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] flex-1 w-full">
-            <h1 className="text-4xl font-black uppercase tracking-tighter">
+    <div className="w-full text-zinc-900 dark:text-zinc-50 font-sans antialiased">
+      <div className="w-full flex flex-col gap-6">
+        
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-zinc-200 dark:border-white/10 p-5 rounded-xl shadow-sm">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 truncate uppercase" title={session.title}>
               {session.title}
             </h1>
-            <p className="text-sm font-bold mt-2">SESSION ID: {sessionId}</p>
-            <p className="text-sm font-bold mt-1">STATUS: {session.status}</p>
+            <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs text-zinc-400 dark:text-zinc-500 font-medium select-none">
+              <span className="font-mono leading-none tracking-tight">ID: {sessionId.substring(0, 10)}...</span>
+              <span className="h-1 w-1 bg-zinc-300 dark:bg-zinc-700 rounded-full" />
+              <span className="inline-flex items-center gap-0.5 rounded-md px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold uppercase tracking-wider text-[9px] leading-none">
+                {session.status}
+              </span>
+            </div>
           </div>
 
-          {/* Action Buttons - Wrap on smaller screens */}
-          <div className="flex gap-3 flex-wrap justify-start md:justify-end w-full md:w-auto">
+          {/* Action Buttons */}
+          <div className="flex gap-2.5 flex-wrap w-full lg:w-auto">
             <button
               onClick={handleCloseSession}
               disabled={isClosingSession || quotations.length === 0 || session.status === "closed"}
-              className={`px-4 md:px-6 py-3 font-black uppercase border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all text-sm md:text-base whitespace-nowrap ${
+              className={`px-4 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all select-none cursor-pointer inline-flex w-auto items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-red-650 ${
                 isClosingSession || quotations.length === 0 || session.status === "closed"
-                  ? "bg-gray-400 opacity-50 cursor-not-allowed"
-                  : "bg-red-500 text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+                  ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-650 cursor-not-allowed border border-transparent opacity-60"
+                  : "bg-red-600 hover:bg-red-700 text-white shadow-sm active:scale-95 duration-150"
               }`}
             >
-              {session.status === "closed" ? "✓ SESSION CLOSED" : isClosingSession ? "CLOSING..." : "CLOSE SESSION"}
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              {session.status === "closed" ? "Session Closed" : isClosingSession ? "Closing..." : "Close Session"}
             </button>
 
             <Link
               href={`/session/${sessionId}/report`}
-              className="bg-black text-white px-4 md:px-6 py-3 font-black uppercase border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-center text-sm md:text-base whitespace-nowrap"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm inline-flex w-auto items-center justify-center gap-1.5 transition-all active:scale-95 duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-955 focus-visible:ring-blue-600"
             >
-              VIEW REPORT
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              View Report
             </Link>
 
             <button
               onClick={() => router.push("/dashboard")}
-              className="px-4 md:px-6 py-3 font-black uppercase border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all text-sm md:text-base whitespace-nowrap"
+              className="px-4 py-2.5 rounded-md text-xs font-bold uppercase border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300 transition-all shadow-sm cursor-pointer active:scale-95 duration-150 inline-flex w-auto items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-955 focus-visible:ring-blue-600"
             >
-              BACK
+              Back
             </button>
           </div>
         </div>
 
         {/* Two Column Layout */}
-        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8 w-full">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 w-full">
           {/* Left: Base Requirements */}
           <div className="col-span-1 w-full">
-            <div className="bg-[#2D5A3D] border-4 border-black p-4 md:p-6 lg:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white">
-              <h2 className="text-xl font-black uppercase mb-4 tracking-tight">
-                1. BASE REQUIREMENTS
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-xl shadow-sm text-zinc-900 dark:text-zinc-100 flex flex-col gap-5">
+              <h2 className="text-sm font-extrabold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 select-none">
+                1. Base Requirements
               </h2>
 
               {session.baseRequirements ? (
-                <>
-                  <div className="bg-yellow-300 border-4 border-black p-4 text-black mb-4">
-                    <p className="font-black text-sm uppercase mb-2">
-                      ✓ UPLOADED
-                    </p>
-                    <p className="text-sm font-bold break-all">
+                <div className="space-y-4">
+                  <div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 text-zinc-900 dark:text-zinc-100">
+                    <div className="flex items-center gap-2 mb-2 text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest select-none">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      SPECIFICATION UPLOADED
+                    </div>
+                    <p className="text-xs font-bold truncate" title={session.baseRequirements.fileName}>
                       {session.baseRequirements.fileName}
                     </p>
-                    <p className="text-xs font-bold mt-2 opacity-70">
-                      {new Date(
-                        session.baseRequirements.uploadedAt
-                      ).toLocaleDateString()}
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-2 font-mono leading-none">
+                      Date: {new Date(session.baseRequirements.uploadedAt).toLocaleDateString("en-GB")}
                     </p>
                   </div>
 
-                  {/* Target Currency Dropdown - Fixed as INR */}
-                  <div className="mb-4">
-                    <label className="text-white font-black text-sm uppercase block mb-2">
+                  {/* Target Currency Dropdown */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-455 dark:text-zinc-500 block select-none">
                       TARGET CURRENCY: {quotations.length > 0 ? "(LOCKED)" : "(EDITABLE)"}
                     </label>
                     <select
                       value={targetCurrency}
                       onChange={(e) => quotations.length === 0 && setTargetCurrency(e.target.value)}
                       disabled={quotations.length > 0}
-                      className={`w-full border-4 border-black text-black font-black uppercase p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
+                      className={`w-full border rounded-md text-xs font-bold p-3 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600 ${
                         quotations.length > 0
-                          ? "bg-gray-300 cursor-not-allowed opacity-75"
-                          : "bg-white cursor-pointer"
+                          ? "bg-zinc-100 dark:bg-zinc-850 border-zinc-200 dark:border-zinc-750 text-zinc-500 dark:text-zinc-400 cursor-not-allowed opacity-75"
+                          : "bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-800 cursor-pointer"
                       }`}
                     >
                       <option value="USD">USD (US Dollar)</option>
@@ -643,27 +686,30 @@ export default function SessionWorkspacePage() {
                       <option value="AUD">AUD (Australian Dollar)</option>
                     </select>
                   </div>
-                </>
+                </div>
               ) : (
-                <>
+                <div className="space-y-4">
                   <div
                     onDragEnter={handleBaseReqDrag}
                     onDragLeave={handleBaseReqDrag}
                     onDragOver={handleBaseReqDrag}
                     onDrop={handleBaseReqDrop}
-                    className={`border-4 border-dashed min-h-[200px] md:min-h-[250px] flex flex-col items-center justify-center gap-4 text-center cursor-pointer transition-all ${
+                    className={`border border-dashed min-h-[220px] rounded-xl flex flex-col items-center justify-center gap-3 text-center cursor-pointer transition-all ${
                       baseReqDragActive
-                        ? "bg-yellow-300 text-black"
-                        : "bg-white text-black"
+                        ? "border-blue-600 bg-blue-600/5 text-blue-600 dark:text-blue-400"
+                        : "border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-400 dark:text-zinc-500"
                     }`}
-                    onClick={() =>
-                      baseReqInputRef.current?.click()
-                    }
+                    onClick={() => baseReqInputRef.current?.click()}
                   >
-                    <span className="text-xl md:text-2xl font-black uppercase">
-                      DROP FILE HERE
+                    <div className="p-3 rounded-full bg-zinc-100 dark:bg-zinc-900 text-blue-600 dark:text-blue-400">
+                      <svg className="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                      DROP SPECIFICATION FILE
                     </span>
-                    <span className="text-sm font-bold">
+                    <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500">
                       PDF, TXT, JSON (Max 10MB)
                     </span>
                   </div>
@@ -675,16 +721,16 @@ export default function SessionWorkspacePage() {
                     accept=".pdf,.txt,.json,.jpg,.jpeg,.png"
                     className="hidden"
                   />
-                </>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Center: Quotation Upload */}
-          <div className="col-span-1 lg:col-span-2 w-full">
-            <div className="bg-white border-4 border-black p-4 md:p-6 lg:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-              <h2 className="text-xl font-black uppercase mb-4 tracking-tight">
-                2. VENDOR QUOTATIONS
+          {/* Center/Right: Quotation Upload & List */}
+          <div className="col-span-1 lg:col-span-2 w-full flex flex-col gap-6">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 p-5 rounded-xl shadow-sm flex flex-col gap-6">
+              <h2 className="text-sm font-extrabold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 select-none">
+                2. Vendor Quotations
               </h2>
 
               <div
@@ -692,23 +738,23 @@ export default function SessionWorkspacePage() {
                 onDragLeave={handleQuoteDrag}
                 onDragOver={handleQuoteDrag}
                 onDrop={handleQuoteDrop}
-                className={`border-4 border-dashed min-h-[250px] md:min-h-[300px] lg:min-h-[40vh] flex flex-col items-center justify-center gap-4 text-center cursor-pointer transition-all mb-6 ${
+                className={`border border-dashed min-h-[220px] rounded-xl flex flex-col items-center justify-center gap-3 text-center cursor-pointer transition-all ${
                   quoteDragActive
-                    ? "bg-yellow-300"
-                    : "bg-gray-50"
+                    ? "border-blue-600 bg-blue-600/5"
+                    : "border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 hover:border-zinc-300 dark:hover:border-zinc-700"
                 }`}
-                onClick={() =>
-                  quoteInputRef.current?.click()
-                }
+                onClick={() => quoteInputRef.current?.click()}
               >
-                <span className="text-xl md:text-2xl lg:text-3xl font-black uppercase">
-                  DROP QUOTATIONS HERE
+                <div className="p-3 rounded-full bg-zinc-100 dark:bg-zinc-900 text-blue-600 dark:text-blue-400">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-350">
+                  DROP VENDOR QUOTATIONS HERE
                 </span>
-                <span className="text-sm md:text-base font-bold">
-                  OR CLICK TO SELECT FILES
-                </span>
-                <span className="text-xs md:text-sm font-bold opacity-70">
-                  Multiple files accepted | PDF, Images, TXT
+                <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500">
+                  Multiple files accepted | PDF, JPG, PNG, TXT
                 </span>
               </div>
 
@@ -721,45 +767,46 @@ export default function SessionWorkspacePage() {
                 className="hidden"
               />
 
-              {/* Processing Queue */}
-              <div className="bg-gray-100 border-4 border-black p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-black uppercase text-sm">
-                    PROCESSING QUEUE ({quotations.filter((q) => q.status !== "canceled").length})
+              {/* Processing Queue and Status Checklist */}
+              <div className="bg-zinc-50/80 dark:bg-zinc-950/30 border border-zinc-150 dark:border-zinc-850 p-4 rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 select-none">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                    ANALYSIS QUEUE ({quotations.filter((q) => q.status !== "canceled").length})
                   </h3>
-                  <div className="flex gap-4 text-xs font-bold">
-                    <span className="bg-green-300 px-2 py-1 border-2 border-black">
-                      ✓ {quotations.filter((q) => q.status === "analyzed").length}
+                  
+                  <div className="flex flex-wrap gap-2 text-[9px] font-bold">
+                    <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md border border-emerald-500/30 leading-none">
+                      ANALYZED: {quotations.filter((q) => q.status === "analyzed").length}
                     </span>
-                    <span className="bg-yellow-300 px-2 py-1 border-2 border-black">
-                      ⧖ {quotations.filter((q) => q.status === "processing").length}
+                    <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md border border-amber-500/30 leading-none">
+                      PROCESSING: {quotations.filter((q) => q.status === "processing").length}
                     </span>
-                    <span className="bg-red-300 px-2 py-1 border-2 border-black">
-                      ✕ {quotations.filter((q) => q.status === "error").length}
+                    <span className="bg-rose-500/10 text-rose-600 dark:text-rose-455 px-2 py-0.5 rounded-md border border-rose-500/30 leading-none">
+                      ERRORS: {quotations.filter((q) => q.status === "error").length}
                     </span>
-                    <span className="bg-gray-400 px-2 py-1 border-2 border-black">
-                      ⊖ {quotations.filter((q) => q.status === "canceled").length}
+                    <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-400 px-2 py-0.5 rounded-md border border-zinc-200/30 dark:border-zinc-700/30 leading-none">
+                      CANCELED: {quotations.filter((q) => q.status === "canceled").length}
                     </span>
                   </div>
                 </div>
 
-                {/* Upload Progress Bars */}
+                {/* Upload Progress Bar indicators */}
                 {Object.entries(uploadProgress).length > 0 && (
                   <div className="mb-4 space-y-2">
                     {Object.entries(uploadProgress).map(([fileKey, data]) => (
-                      <div key={fileKey} className="border-2 border-black bg-white p-2">
-                        <div className="flex justify-between items-center mb-1">
-                          <p className="text-xs font-bold truncate">{fileKey.split("_")[0]}</p>
-                          <span className={`text-xs font-black px-1 border border-black ${
-                            data.status === "complete" ? "bg-green-300" :
-                            data.status === "error" ? "bg-red-300" : "bg-yellow-300"
+                      <div key={fileKey} className="border border-zinc-200 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-lg p-3">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate" title={fileKey.split("_")[0]}>{fileKey.split("_")[0]}</p>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider leading-none ${
+                            data.status === "complete" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/30" :
+                            data.status === "error" ? "bg-rose-500/10 text-rose-600 border border-rose-500/30" : "bg-amber-500/10 text-amber-600 border border-amber-500/30"
                           }`}>
-                            {data.status.toUpperCase()}
+                            {data.status}
                           </span>
                         </div>
-                        <div className="w-full bg-gray-300 border-2 border-black h-3">
+                        <div className="w-full bg-zinc-100 dark:bg-zinc-955 rounded-md h-1.5 overflow-hidden">
                           <div
-                            className="bg-black h-full transition-all"
+                            className="bg-blue-600 h-full rounded-md transition-all duration-300"
                             style={{ width: `${data.progress}%` }}
                           />
                         </div>
@@ -769,73 +816,86 @@ export default function SessionWorkspacePage() {
                 )}
 
                 {quotations.length === 0 ? (
-                  <p className="text-sm font-bold opacity-70">
-                    NO QUOTATIONS UPLOADED YET
-                  </p>
+                  <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg p-8 text-center text-zinc-400 dark:text-zinc-500 text-xs font-semibold select-none flex flex-col items-center gap-2">
+                    <svg className="w-6 h-6 text-zinc-300 dark:text-zinc-700 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>No vendor quotations uploaded yet</span>
+                    <span className="text-[10px] opacity-60">Drop vendor quotation files in the zone above to begin analysis</span>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {quotations.map((quote) => (
                       <div
                         key={quote.id}
-                        className={`border-4 border-black p-3 ${
+                        tabIndex={0}
+                        className={`border rounded-lg p-4 transition-all hover:bg-zinc-100/40 dark:hover:bg-zinc-850/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600 ${
                           quote.status === "analyzed"
-                            ? "bg-green-300"
+                            ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-500/5"
                             : quote.status === "error"
-                            ? "bg-red-300"
+                            ? "border-rose-200 dark:border-rose-900/60 bg-rose-500/5"
                             : quote.status === "canceled"
-                            ? "bg-gray-300"
-                            : "bg-white"
+                            ? "border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-955/20 text-zinc-400"
+                            : "border-zinc-200 dark:border-zinc-850 bg-white dark:bg-zinc-900"
                         }`}
                       >
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1">
-                            <p className="font-black text-sm uppercase">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-zinc-850 dark:text-zinc-200 truncate uppercase" title={quote.vendorName}>
                               {quote.vendorName}
                             </p>
-                            <p className="text-xs font-bold mt-1 opacity-70">
+                            <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 font-mono mt-0.5 leading-none">
                               ID: {quote.id.substring(0, 8)}
                             </p>
                           </div>
-                          <div className="flex gap-2 items-start">
+                          
+                          <div className="flex gap-2 items-center flex-shrink-0 select-none">
                             <span
-                              className={`text-xs font-black uppercase px-2 py-1 border-2 border-black whitespace-nowrap ${
+                              className={`text-[9px] font-bold uppercase px-2.5 py-0.5 rounded-md border leading-none ${
                                 quote.status === "processing"
-                                  ? "bg-yellow-400"
+                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 animate-pulse"
                                   : quote.status === "analyzed"
-                                  ? "bg-green-300"
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                                   : quote.status === "canceled"
-                                  ? "bg-gray-400"
-                                  : "bg-red-300"
+                                  ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200/30 dark:border-zinc-700/30"
+                                  : "bg-rose-500/10 text-rose-600 dark:text-rose-455 border-rose-500/30"
                               }`}
                             >
                               {quote.status}
                             </span>
+                            
                             {(quote.status === "processing" || quote.status === "error") && (
                               <button
                                 onClick={() => handleCancelQuotation(quote.id, quote.vendorName)}
-                                className="bg-red-500 hover:bg-red-700 text-white font-black border-2 border-black p-1 w-7 h-7 flex items-center justify-center transition-all text-sm"
+                                className="text-rose-600 hover:text-white dark:text-rose-400 hover:bg-rose-650 rounded-md p-1 transition-all active:scale-95 duration-150 flex items-center justify-center cursor-pointer border border-zinc-200 dark:border-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600"
                                 title="Cancel and remove from processing"
                               >
-                                ✕
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                               </button>
                             )}
                           </div>
                         </div>
 
                         {quote.errorMessage && (
-                          <p className="text-xs font-bold mt-2 text-red-700">
-                            Error: {quote.errorMessage}
-                          </p>
+                          <div className="mt-3 p-3 rounded-md border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20 text-[11px] font-medium text-rose-600 dark:text-rose-400 leading-normal">
+                            {quote.errorMessage}
+                          </div>
                         )}
 
                         {quote.parsedData && (
-                          <div className="text-xs font-bold mt-2 space-y-1">
-                            <p>
-                              Score: {quote.parsedData.complianceScore}%
+                          <div className="text-[11px] font-medium mt-3 border-t border-zinc-100 dark:border-zinc-800/80 pt-3 flex flex-wrap gap-x-6 gap-y-1.5 select-none text-zinc-400 dark:text-zinc-500">
+                            <p className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block sm:inline">Compliance:</span> 
+                              <span className="font-bold text-zinc-900 dark:text-zinc-500 font-mono leading-none">{quote.parsedData.complianceScore}%</span>
                             </p>
                             {quote.parsedData.totalCost !== undefined && quote.parsedData.totalCost !== null && (
-                              <p>
-                                Cost: {quote.finalJsonReport?.currency || targetCurrency} {quote.parsedData.totalCost.toLocaleString()}
+                              <p className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block sm:inline">Total Cost:</span> 
+                                <span className="font-bold text-zinc-900 dark:text-zinc-555 font-mono leading-none">
+                                  {quote.finalJsonReport?.currency || targetCurrency} {quote.parsedData.totalCost.toLocaleString()}
+                                </span>
                               </p>
                             )}
                           </div>
@@ -849,17 +909,19 @@ export default function SessionWorkspacePage() {
           </div>
         </div>
 
-        {/* Info Box - Disclaimer */}
-        <div className="w-full bg-white border-4 border-black p-4 md:p-6 lg:p-8 text-center space-y-3 md:space-y-4">
-          <p className="font-bold text-sm md:text-base">
-            UPLOAD BASE REQUIREMENTS FIRST, THEN ADD VENDOR QUOTATIONS
-          </p>
-          <p className="text-xs md:text-sm font-bold mt-2 opacity-70">
-            AI EXTRACTION RUNS AUTOMATICALLY (BATCHED: 5 CONCURRENT) | PROCESSING 30-60 SECONDS PER FILE
-          </p>
-          <p className="text-xs md:text-sm font-bold mt-2 opacity-70">
-            WHEN READY, CLICK "CLOSE SESSION" TO GENERATE FINAL ADJUDICATION AND VENDOR RANKING
-          </p>
+        {/* Informative Guidance Footer Callout */}
+        <div className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 p-5 rounded-xl shadow-sm flex gap-4 items-start select-none">
+          <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-md text-blue-600 dark:text-blue-400 flex-shrink-0">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold text-zinc-850 dark:text-zinc-200 uppercase tracking-wider">WORKSPACE INSTRUCTIONS</h4>
+            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              Upload the base requirements file first to set technical guidelines. Add multiple vendor quotations; the multi-stage AI parser automatically unifies, processes, and extracts metadata sequentially. When all processing completes, click "Close Session" to build the compliance matrix report and final adjudication recommendation.
+            </p>
+          </div>
         </div>
       </div>
     </div>
