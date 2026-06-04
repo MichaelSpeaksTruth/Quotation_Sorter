@@ -180,7 +180,7 @@ export default function ReportPage() {
 
         <button
           onClick={() => router.push(`/session/${sessionId}`)}
-          className="inline-flex w-auto items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-850 text-zinc-700 dark:text-zinc-300 font-semibold rounded-md transition-all shadow-sm text-xs tracking-wider uppercase cursor-pointer active:scale-95 duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600 print:hidden"
+          className="inline-flex w-auto items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold rounded-md transition-all shadow-sm text-xs tracking-wider uppercase cursor-pointer active:scale-95 duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600 print:hidden"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -206,7 +206,7 @@ export default function ReportPage() {
                     <span>baseline_specification.json</span>
                     <span className="text-blue-600 dark:text-blue-400">Read Only</span>
                   </div>
-                  <pre className="font-mono text-[11px] text-zinc-650 dark:text-zinc-300 p-4 overflow-auto max-h-48 scrollbar-thin leading-relaxed">
+                  <pre className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300 p-4 overflow-auto max-h-48 scrollbar-thin leading-relaxed">
                     <code>{rawText}</code>
                   </pre>
                 </div>
@@ -216,7 +216,7 @@ export default function ReportPage() {
               <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-3.5 bg-zinc-50/50 dark:bg-zinc-950/30 max-h-32 overflow-y-auto">
                 <ul className="space-y-1.5">
                   {baseReqs.map((req, idx) => (
-                    <li key={idx} className="text-xs text-zinc-650 dark:text-zinc-300 font-medium flex gap-2">
+                    <li key={idx} className="text-xs text-zinc-600 dark:text-zinc-300 font-medium flex gap-2">
                       <span className="text-blue-600 dark:text-blue-400 font-bold select-none">•</span>
                       <span>{req}</span>
                     </li>
@@ -258,7 +258,7 @@ export default function ReportPage() {
                 return (
                   <tr 
                     key={quote.id} 
-                    className="hover:bg-zinc-50/50 dark:hover:bg-zinc-850/30 transition-colors"
+                    className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors"
                   >
                     <td className="p-3.5 font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-tight whitespace-nowrap">
                       {quote.vendorName}
@@ -435,7 +435,7 @@ export default function ReportPage() {
 
                 {/* Key Metrics Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="border border-zinc-150 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
                     <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
                       Total Cost
                     </p>
@@ -444,7 +444,7 @@ export default function ReportPage() {
                     </p>
                   </div>
 
-                  <div className="border border-zinc-150 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
                     <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
                       Compliance Score
                     </p>
@@ -453,7 +453,7 @@ export default function ReportPage() {
                     </p>
                   </div>
 
-                  <div className="border border-zinc-150 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
                     <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
                       Delivery
                     </p>
@@ -462,7 +462,7 @@ export default function ReportPage() {
                     </p>
                   </div>
 
-                  <div className="border border-zinc-150 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
                     <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
                       Certifications
                     </p>
@@ -493,7 +493,7 @@ export default function ReportPage() {
 
                 {/* Validator Notes Box */}
                 {report?.validationNotes && (
-                  <div className="border border-zinc-150 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/30 dark:bg-zinc-950/10 text-xs">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/30 dark:bg-zinc-950/10 text-xs">
                     <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
                       Validator Notes
                     </p>
@@ -641,7 +641,7 @@ export default function ReportPage() {
                           
                           <div className="flex items-center gap-3 self-stretch sm:self-auto justify-between select-none">
                             <div className="flex items-baseline">
-                              <span className="text-base font-mono font-bold leading-none text-zinc-850 dark:text-zinc-200">
+                              <span className="text-base font-mono font-bold leading-none text-zinc-800 dark:text-zinc-200">
                                 {vendor.overallScore}
                               </span>
                               <span className="text-[9px] font-mono leading-none text-zinc-400">/100</span>
@@ -653,7 +653,7 @@ export default function ReportPage() {
                         </div>
 
                         {/* Score Breakdown Grid */}
-                        <div className="grid grid-cols-4 gap-2 bg-zinc-55/50 dark:bg-zinc-950/30 border border-zinc-150 dark:border-zinc-800 rounded-lg p-2.5 text-center">
+                        <div className="grid grid-cols-4 gap-2 bg-zinc-50/50 dark:bg-zinc-950/30 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2.5 text-center">
                           <div>
                             <p className="text-[9px] font-mono font-bold tracking-tight text-zinc-400 dark:text-zinc-500 uppercase">Compliance</p>
                             <p className="text-sm font-bold font-mono leading-none mt-1 text-zinc-800 dark:text-zinc-200">
@@ -680,7 +680,7 @@ export default function ReportPage() {
                           </div>
                         </div>
 
-                        <p className="text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-350 leading-relaxed">
+                        <p className="text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-300 leading-relaxed">
                           {vendor.rationale}
                         </p>
 
@@ -689,7 +689,7 @@ export default function ReportPage() {
                             <p className="text-[9px] font-mono font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1">
                               Critical Gaps Identified:
                             </p>
-                            <ul className="text-xs text-rose-800 dark:text-rose-350 font-semibold space-y-0.5">
+                            <ul className="text-xs text-rose-800 dark:text-rose-300 font-semibold space-y-0.5">
                               {vendor.criticalGaps.map((gap: string, gapIdx: number) => (
                                 <li key={gapIdx} className="flex gap-1 items-start">
                                   <span className="text-rose-500 font-bold select-none">•</span>
@@ -736,7 +736,7 @@ export default function ReportPage() {
                           ({session.adjudicationResult.costAnalysis.highestCost?.cost?.toLocaleString()})
                         </span>
                       </div>
-                      <div className="flex justify-between items-center border-t border-zinc-150 dark:border-zinc-800 pt-2 mt-2">
+                      <div className="flex justify-between items-center border-t border-zinc-200 dark:border-zinc-800 pt-2 mt-2">
                         <span className="text-zinc-500 font-bold">Total Spread:</span>
                         <span className="font-mono leading-none text-amber-600 dark:text-amber-400 font-bold">
                           {session.adjudicationResult.costAnalysis.costDifferencePercent}%
@@ -749,13 +749,13 @@ export default function ReportPage() {
                 {/* Compliance Analysis */}
                 {session.adjudicationResult.complianceAnalysis && (
                   <div className="border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl bg-white dark:bg-zinc-950/20">
-                    <p className="text-[9px] font-mono font-bold tracking-widest text-zinc-455 dark:text-zinc-500 uppercase mb-3 border-b border-zinc-200 dark:border-zinc-800 pb-1.5 select-none">
+                    <p className="text-[9px] font-mono font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase mb-3 border-b border-zinc-200 dark:border-zinc-800 pb-1.5 select-none">
                       Compliance Tiers
                     </p>
                     <div className="space-y-3.5 text-xs">
                       {session.adjudicationResult.complianceAnalysis.fullCompliance?.length > 0 && (
                         <div className="flex flex-col gap-1.5 border-b border-zinc-200 dark:border-zinc-800/40 pb-2">
-                          <span className="text-emerald-605 dark:text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider">Full Compliance</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider">Full Compliance</span>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {session.adjudicationResult.complianceAnalysis.fullCompliance.map((vendor: string, vidx: number) => (
                               <span key={vidx} className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15 px-2 py-0.5 rounded text-[10px] font-bold tracking-tight">{vendor}</span>
@@ -778,7 +778,7 @@ export default function ReportPage() {
                           <span className="text-rose-600 dark:text-rose-400 font-mono text-[9px] font-bold uppercase tracking-wider">Non-compliant</span>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {session.adjudicationResult.complianceAnalysis.nonCompliant.map((vendor: string, vidx: number) => (
-                              <span key={vidx} className="bg-rose-500/10 text-rose-600 dark:text-rose-455 border border-rose-500/15 px-2 py-0.5 rounded text-[10px] font-bold tracking-tight">{vendor}</span>
+                              <span key={vidx} className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/15 px-2 py-0.5 rounded text-[10px] font-bold tracking-tight">{vendor}</span>
                             ))}
                           </div>
                         </div>
@@ -801,7 +801,7 @@ export default function ReportPage() {
                 <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-2 select-none">
                   Executive Summary & Notes
                 </p>
-                <p className="font-medium text-zinc-650 dark:text-zinc-300 leading-relaxed">
+                <p className="font-medium text-zinc-600 dark:text-zinc-300 leading-relaxed">
                   {session.adjudicationResult.adjudicationNotes}
                 </p>
               </div>

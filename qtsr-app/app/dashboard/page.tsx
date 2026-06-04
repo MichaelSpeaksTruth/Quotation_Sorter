@@ -193,7 +193,7 @@ export default function DashboardPage() {
               <button
                 type="submit"
                 disabled={creatingSession || !newSessionName.trim()}
-                className="px-4 py-2.5 bg-white hover:bg-zinc-200 disabled:bg-zinc-900 disabled:border-zinc-850 disabled:text-zinc-600 disabled:shadow-none text-zinc-950 text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-[0.97] border border-transparent shadow-md whitespace-nowrap flex items-center justify-center ml-3 hover:shadow-lg"
+                className="px-4 py-2.5 bg-white hover:bg-zinc-200 disabled:bg-zinc-900 disabled:border-zinc-800 disabled:text-zinc-600 disabled:shadow-none text-zinc-950 text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-[0.97] border border-transparent shadow-md whitespace-nowrap flex items-center justify-center ml-3 hover:shadow-lg"
               >
                 {creatingSession ? "Initializing..." : "Create Workspace"}
               </button>

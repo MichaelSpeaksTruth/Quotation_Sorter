@@ -543,10 +543,10 @@ export default function SessionWorkspacePage() {
           {/* Header Skeleton */}
           <div className="h-24 bg-white/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-white/10 rounded-xl flex items-center justify-between p-5">
             <div className="space-y-2.5 w-1/3">
-              <div className="h-6 bg-zinc-300 dark:bg-zinc-850 rounded w-3/4 animate-pulse" />
+              <div className="h-6 bg-zinc-300 dark:bg-zinc-800 rounded w-3/4 animate-pulse" />
               <div className="h-3 bg-zinc-200 dark:bg-zinc-900 rounded w-1/2" />
             </div>
-            <div className="h-10 bg-zinc-300 dark:bg-zinc-850 rounded w-24 animate-pulse" />
+            <div className="h-10 bg-zinc-300 dark:bg-zinc-800 rounded w-24 animate-pulse" />
           </div>
 
           {/* Two Column Workspace Grid Skeleton */}
@@ -605,9 +605,9 @@ export default function SessionWorkspacePage() {
             <button
               onClick={handleCloseSession}
               disabled={isClosingSession || quotations.length === 0 || session.status === "closed"}
-              className={`px-4 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all select-none cursor-pointer inline-flex w-auto items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-red-650 ${
+              className={`px-4 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all select-none cursor-pointer inline-flex w-auto items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-red-600 ${
                 isClosingSession || quotations.length === 0 || session.status === "closed"
-                  ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-650 cursor-not-allowed border border-transparent opacity-60"
+                  ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-not-allowed border border-transparent opacity-60"
                   : "bg-red-600 hover:bg-red-700 text-white shadow-sm active:scale-95 duration-150"
               }`}
             >
@@ -619,7 +619,7 @@ export default function SessionWorkspacePage() {
 
             <Link
               href={`/session/${sessionId}/report`}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm inline-flex w-auto items-center justify-center gap-1.5 transition-all active:scale-95 duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-955 focus-visible:ring-blue-600"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm inline-flex w-auto items-center justify-center gap-1.5 transition-all active:scale-95 duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -629,7 +629,7 @@ export default function SessionWorkspacePage() {
 
             <button
               onClick={() => router.push("/dashboard")}
-              className="px-4 py-2.5 rounded-md text-xs font-bold uppercase border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300 transition-all shadow-sm cursor-pointer active:scale-95 duration-150 inline-flex w-auto items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-955 focus-visible:ring-blue-600"
+              className="px-4 py-2.5 rounded-md text-xs font-bold uppercase border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-700 dark:text-zinc-300 transition-all shadow-sm cursor-pointer active:scale-95 duration-150 inline-flex w-auto items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600"
             >
               Back
             </button>
@@ -664,7 +664,7 @@ export default function SessionWorkspacePage() {
 
                   {/* Target Currency Dropdown */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-455 dark:text-zinc-500 block select-none">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block select-none">
                       TARGET CURRENCY: {quotations.length > 0 ? "(LOCKED)" : "(EDITABLE)"}
                     </label>
                     <select
@@ -673,7 +673,7 @@ export default function SessionWorkspacePage() {
                       disabled={quotations.length > 0}
                       className={`w-full border rounded-md text-xs font-bold p-3 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600 ${
                         quotations.length > 0
-                          ? "bg-zinc-100 dark:bg-zinc-850 border-zinc-200 dark:border-zinc-750 text-zinc-500 dark:text-zinc-400 cursor-not-allowed opacity-75"
+                          ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 cursor-not-allowed opacity-75"
                           : "bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-800 cursor-pointer"
                       }`}
                     >
@@ -750,7 +750,7 @@ export default function SessionWorkspacePage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-350">
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                   DROP VENDOR QUOTATIONS HERE
                 </span>
                 <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500">
@@ -768,7 +768,7 @@ export default function SessionWorkspacePage() {
               />
 
               {/* Processing Queue and Status Checklist */}
-              <div className="bg-zinc-50/80 dark:bg-zinc-950/30 border border-zinc-150 dark:border-zinc-850 p-4 rounded-lg">
+              <div className="bg-zinc-50/80 dark:bg-zinc-950/30 border border-zinc-200 dark:border-zinc-800 p-4 rounded-lg">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 select-none">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                     ANALYSIS QUEUE ({quotations.filter((q) => q.status !== "canceled").length})
@@ -781,7 +781,7 @@ export default function SessionWorkspacePage() {
                     <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md border border-amber-500/30 leading-none">
                       PROCESSING: {quotations.filter((q) => q.status === "processing").length}
                     </span>
-                    <span className="bg-rose-500/10 text-rose-600 dark:text-rose-455 px-2 py-0.5 rounded-md border border-rose-500/30 leading-none">
+                    <span className="bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-md border border-rose-500/30 leading-none">
                       ERRORS: {quotations.filter((q) => q.status === "error").length}
                     </span>
                     <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-400 px-2 py-0.5 rounded-md border border-zinc-200/30 dark:border-zinc-700/30 leading-none">
@@ -794,7 +794,7 @@ export default function SessionWorkspacePage() {
                 {Object.entries(uploadProgress).length > 0 && (
                   <div className="mb-4 space-y-2">
                     {Object.entries(uploadProgress).map(([fileKey, data]) => (
-                      <div key={fileKey} className="border border-zinc-200 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-lg p-3">
+                      <div key={fileKey} className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-lg p-3">
                         <div className="flex justify-between items-center mb-1.5">
                           <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate" title={fileKey.split("_")[0]}>{fileKey.split("_")[0]}</p>
                           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider leading-none ${
@@ -804,7 +804,7 @@ export default function SessionWorkspacePage() {
                             {data.status}
                           </span>
                         </div>
-                        <div className="w-full bg-zinc-100 dark:bg-zinc-955 rounded-md h-1.5 overflow-hidden">
+                        <div className="w-full bg-zinc-100 dark:bg-zinc-950 rounded-md h-1.5 overflow-hidden">
                           <div
                             className="bg-blue-600 h-full rounded-md transition-all duration-300"
                             style={{ width: `${data.progress}%` }}
@@ -829,19 +829,19 @@ export default function SessionWorkspacePage() {
                       <div
                         key={quote.id}
                         tabIndex={0}
-                        className={`border rounded-lg p-4 transition-all hover:bg-zinc-100/40 dark:hover:bg-zinc-850/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600 ${
+                        className={`border rounded-lg p-4 transition-all hover:bg-zinc-100/40 dark:hover:bg-zinc-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600 ${
                           quote.status === "analyzed"
                             ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-500/5"
                             : quote.status === "error"
                             ? "border-rose-200 dark:border-rose-900/60 bg-rose-500/5"
                             : quote.status === "canceled"
-                            ? "border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-955/20 text-zinc-400"
-                            : "border-zinc-200 dark:border-zinc-850 bg-white dark:bg-zinc-900"
+                            ? "border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 text-zinc-400"
+                            : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"
                         }`}
                       >
                         <div className="flex justify-between items-start gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-zinc-850 dark:text-zinc-200 truncate uppercase" title={quote.vendorName}>
+                            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 truncate uppercase" title={quote.vendorName}>
                               {quote.vendorName}
                             </p>
                             <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 font-mono mt-0.5 leading-none">
@@ -858,7 +858,7 @@ export default function SessionWorkspacePage() {
                                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                                   : quote.status === "canceled"
                                   ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200/30 dark:border-zinc-700/30"
-                                  : "bg-rose-500/10 text-rose-600 dark:text-rose-455 border-rose-500/30"
+                                  : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
                               }`}
                             >
                               {quote.status}
@@ -867,7 +867,7 @@ export default function SessionWorkspacePage() {
                             {(quote.status === "processing" || quote.status === "error") && (
                               <button
                                 onClick={() => handleCancelQuotation(quote.id, quote.vendorName)}
-                                className="text-rose-600 hover:text-white dark:text-rose-400 hover:bg-rose-650 rounded-md p-1 transition-all active:scale-95 duration-150 flex items-center justify-center cursor-pointer border border-zinc-200 dark:border-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600"
+                                className="text-rose-600 hover:text-white dark:text-rose-400 hover:bg-rose-600 rounded-md p-1 transition-all active:scale-95 duration-150 flex items-center justify-center cursor-pointer border border-zinc-200 dark:border-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600"
                                 title="Cancel and remove from processing"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -888,12 +888,12 @@ export default function SessionWorkspacePage() {
                           <div className="text-[11px] font-medium mt-3 border-t border-zinc-100 dark:border-zinc-800/80 pt-3 flex flex-wrap gap-x-6 gap-y-1.5 select-none text-zinc-400 dark:text-zinc-500">
                             <p className="flex items-center gap-1.5">
                               <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block sm:inline">Compliance:</span> 
-                              <span className="font-bold text-zinc-900 dark:text-zinc-500 font-mono leading-none">{quote.parsedData.complianceScore}%</span>
+                              <span className="font-bold text-zinc-900 dark:text-zinc-200 font-mono leading-none">{quote.parsedData.complianceScore}%</span>
                             </p>
                             {quote.parsedData.totalCost !== undefined && quote.parsedData.totalCost !== null && (
                               <p className="flex items-center gap-1.5">
                                 <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block sm:inline">Total Cost:</span> 
-                                <span className="font-bold text-zinc-900 dark:text-zinc-555 font-mono leading-none">
+                                <span className="font-bold text-zinc-900 dark:text-zinc-200 font-mono leading-none">
                                   {quote.finalJsonReport?.currency || targetCurrency} {quote.parsedData.totalCost.toLocaleString()}
                                 </span>
                               </p>
@@ -917,7 +917,7 @@ export default function SessionWorkspacePage() {
             </svg>
           </div>
           <div className="space-y-1">
-            <h4 className="text-xs font-bold text-zinc-850 dark:text-zinc-200 uppercase tracking-wider">WORKSPACE INSTRUCTIONS</h4>
+            <h4 className="text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">WORKSPACE INSTRUCTIONS</h4>
             <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 leading-relaxed">
               Upload the base requirements file first to set technical guidelines. Add multiple vendor quotations; the multi-stage AI parser automatically unifies, processes, and extracts metadata sequentially. When all processing completes, click "Close Session" to build the compliance matrix report and final adjudication recommendation.
             </p>
