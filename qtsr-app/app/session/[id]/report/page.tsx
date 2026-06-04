@@ -34,6 +34,7 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true);
   const [baseReqs, setBaseReqs] = useState<string[]>([]);
   const [currentTime, setCurrentTime] = useState<string>("");
+  const [expandedSpecs, setExpandedSpecs] = useState<Record<string, { matched?: boolean; missing?: boolean }>>({});
 
   // Check authentication
   useEffect(() => {
@@ -180,7 +181,7 @@ export default function ReportPage() {
 
         <button
           onClick={() => router.push(`/session/${sessionId}`)}
-          className="inline-flex w-auto items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold rounded-md transition-all shadow-sm text-xs tracking-wider uppercase cursor-pointer active:scale-95 duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600 print:hidden"
+          className="inline-flex w-auto items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold transition-all shadow-sm text-xs tracking-wider uppercase cursor-pointer active:scale-95 duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600 print:hidden"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -190,7 +191,7 @@ export default function ReportPage() {
       </div>
 
       {/* Base Requirements Section */}
-      <div className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
+      <div className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm">
         <h2 className="text-xs font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase mb-3 select-none">
           Base Requirements
         </h2>
@@ -201,7 +202,7 @@ export default function ReportPage() {
             const isJson = rawText.trim().startsWith("{") || rawText.trim().startsWith("[");
             if (isJson) {
               return (
-                <div className="relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-950">
+                <div className="relative overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-950">
                   <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 font-mono text-[9px] uppercase font-bold tracking-widest text-zinc-400 dark:text-zinc-500 select-none">
                     <span>baseline_specification.json</span>
                     <span className="text-blue-600 dark:text-blue-400">Read Only</span>
@@ -213,7 +214,7 @@ export default function ReportPage() {
               );
             }
             return (
-              <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-3.5 bg-zinc-50/50 dark:bg-zinc-950/30 max-h-32 overflow-y-auto">
+              <div className="border border-zinc-200 dark:border-zinc-800 p-3.5 bg-zinc-50/50 dark:bg-zinc-950/30 max-h-32 overflow-y-auto">
                 <ul className="space-y-1.5">
                   {baseReqs.map((req, idx) => (
                     <li key={idx} className="text-xs text-zinc-600 dark:text-zinc-300 font-medium flex gap-2">
@@ -226,7 +227,7 @@ export default function ReportPage() {
             );
           })()
         ) : (
-          <div className="border border-amber-200 bg-amber-500/5 text-amber-700 dark:text-amber-400 rounded-lg p-3 text-xs font-medium uppercase tracking-tight">
+          <div className="border border-amber-200 bg-amber-500/5 text-amber-700 dark:text-amber-400 p-3 text-xs font-medium uppercase tracking-tight">
             No base requirements uploaded
           </div>
         )}
@@ -234,7 +235,7 @@ export default function ReportPage() {
 
       {/* Comparison Matrix */}
       {quotations.length > 0 ? (
-        <div className="w-full overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+        <div className="w-full overflow-x-auto border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
           <table className="w-full border-collapse text-left text-xs">
             <thead>
               <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50 font-mono text-[10px] tracking-wider uppercase text-zinc-400 dark:text-zinc-500 select-none">
@@ -268,7 +269,7 @@ export default function ReportPage() {
                     </td>
                     <td className="p-3.5 text-center whitespace-nowrap">
                       <span
-                        className={`font-mono text-xs font-bold px-2 py-0.5 rounded-md border ${
+                        className={`font-mono text-xs font-bold px-2 py-0.5 border ${
                           score >= 80
                             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                             : score >= 50
@@ -283,15 +284,19 @@ export default function ReportPage() {
                       <div className="flex flex-wrap gap-1 max-w-full">
                         {matched.length > 0 ? (
                           <>
-                            {matched.slice(0, 4).map((spec: string, idx: number) => (
-                              <span key={idx} className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15 px-2 py-0.5 rounded truncate max-w-full" title={spec}>
+                            {(expandedSpecs[quote.id]?.matched ? matched : matched.slice(0, 4)).map((spec: string, idx: number) => (
+                              <span key={idx} className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15 px-2 py-0.5 truncate max-w-full" title={spec}>
                                 {spec}
                               </span>
                             ))}
                             {matched.length > 4 && (
-                              <span className="text-[9px] font-mono font-bold text-zinc-400 px-1.5 py-0.5 select-none bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded">
-                                +{matched.length - 4} more
-                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setExpandedSpecs(prev => ({ ...prev, [quote.id]: { ...prev[quote.id], matched: !prev[quote.id]?.matched } })); }}
+                                className="text-[9px] font-mono font-bold text-blue-500 dark:text-blue-400 px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                              >
+                                {expandedSpecs[quote.id]?.matched ? 'Show less' : `+${matched.length - 4} more`}
+                              </button>
                             )}
                           </>
                         ) : (
@@ -303,15 +308,19 @@ export default function ReportPage() {
                       <div className="flex flex-wrap gap-1 max-w-full">
                         {missing.length > 0 ? (
                           <>
-                            {missing.slice(0, 4).map((spec: string, idx: number) => (
-                              <span key={idx} className="text-[10px] bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/15 px-2 py-0.5 rounded truncate max-w-full" title={spec}>
+                            {(expandedSpecs[quote.id]?.missing ? missing : missing.slice(0, 4)).map((spec: string, idx: number) => (
+                              <span key={idx} className="text-[10px] bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/15 px-2 py-0.5 truncate max-w-full" title={spec}>
                                 {spec}
                               </span>
                             ))}
                             {missing.length > 4 && (
-                              <span className="text-[9px] font-mono font-bold text-zinc-400 px-1.5 py-0.5 select-none bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded">
-                                +{missing.length - 4} more
-                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setExpandedSpecs(prev => ({ ...prev, [quote.id]: { ...prev[quote.id], missing: !prev[quote.id]?.missing } })); }}
+                                className="text-[9px] font-mono font-bold text-blue-500 dark:text-blue-400 px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                              >
+                                {expandedSpecs[quote.id]?.missing ? 'Show less' : `+${missing.length - 4} more`}
+                              </button>
                             )}
                           </>
                         ) : (
@@ -323,7 +332,7 @@ export default function ReportPage() {
                       {report?.deliveryTime || "N/A"}
                     </td>
                     <td className="p-3.5 text-center whitespace-nowrap">
-                      <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold tracking-widest uppercase inline-flex border leading-none ${getRecommendationColor(recommendation)}`}>
+                      <span className={`px-2.5 py-1 text-[9px] font-bold tracking-widest uppercase inline-flex border leading-none ${getRecommendationColor(recommendation)}`}>
                         {recommendation}
                       </span>
                     </td>
@@ -334,7 +343,7 @@ export default function ReportPage() {
           </table>
         </div>
       ) : (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-xl p-10 text-center shadow-sm">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 p-10 text-center shadow-sm">
           <p className="font-mono text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
             No Analyzed Quotations Yet
           </p>
@@ -357,13 +366,13 @@ export default function ReportPage() {
             return (
               <div
                 key={quote.id}
-                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm flex flex-col gap-5 print:break-inside-avoid print:bg-white"
+                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 shadow-sm flex flex-col gap-5 print:break-inside-avoid print:bg-white"
               >
                 <div className="flex justify-between items-center pb-3 border-b border-zinc-200 dark:border-zinc-800">
                   <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50 uppercase tracking-tight">
                     {quote.vendorName}
                   </h3>
-                  <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold tracking-widest uppercase inline-flex border leading-none ${getRecommendationColor(report?.overallRecommendation)}`}>
+                  <span className={`px-2.5 py-1 text-[9px] font-bold tracking-widest uppercase inline-flex border leading-none ${getRecommendationColor(report?.overallRecommendation)}`}>
                     {report?.overallRecommendation || "N/A"}
                   </span>
                 </div>
@@ -376,7 +385,7 @@ export default function ReportPage() {
                   
                   return (
                     <div
-                      className={`border rounded-lg p-4 transition-all ${
+                      className={`border p-4 transition-all ${
                         hasPrecisionIssues
                           ? "border-rose-500/25 bg-rose-500/5 text-rose-900 dark:text-rose-100"
                           : "border-emerald-500/25 bg-emerald-500/5 text-emerald-900 dark:text-emerald-100"
@@ -387,7 +396,7 @@ export default function ReportPage() {
                           Measurement Precision Validation
                         </p>
                         <span
-                          className={`px-2 py-0.5 text-[9px] font-mono font-bold leading-none uppercase rounded border ${
+                          className={`px-2 py-0.5 text-[9px] font-mono font-bold leading-none uppercase border ${
                             precisionStatus === "PASS"
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                               : precisionStatus === "FAIL"
@@ -435,7 +444,7 @@ export default function ReportPage() {
 
                 {/* Key Metrics Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 bg-zinc-50/50 dark:bg-zinc-950/20">
                     <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
                       Total Cost
                     </p>
@@ -444,7 +453,7 @@ export default function ReportPage() {
                     </p>
                   </div>
 
-                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 bg-zinc-50/50 dark:bg-zinc-950/20">
                     <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
                       Compliance Score
                     </p>
@@ -453,7 +462,7 @@ export default function ReportPage() {
                     </p>
                   </div>
 
-                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 bg-zinc-50/50 dark:bg-zinc-950/20">
                     <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
                       Delivery
                     </p>
@@ -462,7 +471,7 @@ export default function ReportPage() {
                     </p>
                   </div>
 
-                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 bg-zinc-50/50 dark:bg-zinc-950/20">
                     <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
                       Certifications
                     </p>
@@ -476,7 +485,7 @@ export default function ReportPage() {
 
                 {/* Critical Issues Alert Box */}
                 {report?.criticalIssues && report.criticalIssues.length > 0 && (
-                  <div className="border border-rose-500/25 bg-rose-500/5 rounded-lg p-3 text-rose-900 dark:text-rose-200">
+                  <div className="border border-rose-500/25 bg-rose-500/5 p-3 text-rose-900 dark:text-rose-200">
                     <p className="text-[10px] font-mono font-bold uppercase tracking-wider mb-2 text-rose-600 dark:text-rose-400">
                       ⚠ Critical Issues Identified
                     </p>
@@ -493,7 +502,7 @@ export default function ReportPage() {
 
                 {/* Validator Notes Box */}
                 {report?.validationNotes && (
-                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg bg-zinc-50/30 dark:bg-zinc-950/10 text-xs">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-3 bg-zinc-50/30 dark:bg-zinc-950/10 text-xs">
                     <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-1">
                       Validator Notes
                     </p>
@@ -504,7 +513,7 @@ export default function ReportPage() {
                 )}
 
                 {/* AI Audit & Conversion Logs */}
-                <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-950/10 p-4">
+                <div className="border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/10 p-4">
                   <h4 className="text-xs font-mono font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 pb-2 border-b border-zinc-200 dark:border-zinc-800 mb-3 select-none">
                     🔬 AI Audit & Conversion Logs
                   </h4>
@@ -520,7 +529,7 @@ export default function ReportPage() {
                           (conversion: string, idx: number) => (
                             <div
                               key={idx}
-                              className="bg-emerald-500/5 border border-emerald-500/20 p-2.5 rounded-md font-mono text-xs text-emerald-800 dark:text-emerald-300 leading-tight"
+                              className="bg-emerald-500/5 border border-emerald-500/20 p-2.5 font-mono text-xs text-emerald-800 dark:text-emerald-300 leading-tight"
                             >
                               <span className="font-bold mr-1.5">✔ PASS:</span>
                               {conversion}
@@ -530,7 +539,7 @@ export default function ReportPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="mb-4 bg-zinc-100/50 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-800 p-2.5 rounded-md font-mono text-xs text-zinc-400 select-none">
+                    <div className="mb-4 bg-zinc-100/50 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-800 p-2.5 font-mono text-xs text-zinc-400 select-none">
                       — No unit conversions required
                     </div>
                   )}
@@ -547,7 +556,7 @@ export default function ReportPage() {
                           (error: string, idx: number) => (
                             <div
                               key={idx}
-                              className="bg-rose-500/5 border border-rose-500/20 p-2.5 rounded-md font-mono text-xs text-rose-700 dark:text-rose-300 leading-tight font-semibold"
+                              className="bg-rose-500/5 border border-rose-500/20 p-2.5 font-mono text-xs text-rose-700 dark:text-rose-300 leading-tight font-semibold"
                             >
                               <span className="font-bold mr-1.5">✗ FAIL:</span>
                               {error}
@@ -557,7 +566,7 @@ export default function ReportPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-emerald-500/5 border border-emerald-500/10 p-2.5 rounded-md font-mono text-xs text-emerald-600/70 dark:text-emerald-400/70 select-none">
+                    <div className="bg-emerald-500/5 border border-emerald-500/10 p-2.5 font-mono text-xs text-emerald-600/70 dark:text-emerald-400/70 select-none">
                       — No measurement precision errors detected
                     </div>
                   )}
@@ -571,7 +580,7 @@ export default function ReportPage() {
       {/* Adjudication Results */}
       {session?.status === "closed" && session?.adjudicationResult && (
         <div className="space-y-6 mt-2 print:mt-4 print:break-inside-avoid">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-6">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 md:p-6 shadow-sm flex flex-col gap-6">
             <div>
               <h2 className="text-lg md:text-xl font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-50">
                 Final Adjudication & Vendor Ranking
@@ -583,7 +592,7 @@ export default function ReportPage() {
 
             {/* Best Vendor Highlight */}
             {session.adjudicationResult.bestVendor && (
-              <div className="relative border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-500/2 rounded-xl p-5 shadow-sm overflow-hidden">
+              <div className="relative border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-500/2 p-5 shadow-sm overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
                 
                 <div className="flex items-center gap-1.5 text-[9px] font-mono font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mb-2">
@@ -627,7 +636,7 @@ export default function ReportPage() {
                     return (
                       <div
                         key={idx}
-                        className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 bg-white dark:bg-zinc-950/40 shadow-sm flex flex-col gap-4"
+                        className="border border-zinc-200 dark:border-zinc-800 p-4 bg-white dark:bg-zinc-950/40 shadow-sm flex flex-col gap-4"
                       >
                         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                           <div>
@@ -646,14 +655,14 @@ export default function ReportPage() {
                               </span>
                               <span className="text-[9px] font-mono leading-none text-zinc-400">/100</span>
                             </div>
-                            <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold tracking-widest uppercase border leading-none ${recColor}`}>
+                            <span className={`px-2.5 py-1 text-[9px] font-bold tracking-widest uppercase border leading-none ${recColor}`}>
                               {vendor.recommendation}
                             </span>
                           </div>
                         </div>
 
                         {/* Score Breakdown Grid */}
-                        <div className="grid grid-cols-4 gap-2 bg-zinc-50/50 dark:bg-zinc-950/30 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2.5 text-center">
+                        <div className="grid grid-cols-4 gap-2 bg-zinc-50/50 dark:bg-zinc-950/30 border border-zinc-200 dark:border-zinc-800 p-2.5 text-center">
                           <div>
                             <p className="text-[9px] font-mono font-bold tracking-tight text-zinc-400 dark:text-zinc-500 uppercase">Compliance</p>
                             <p className="text-sm font-bold font-mono leading-none mt-1 text-zinc-800 dark:text-zinc-200">
@@ -685,7 +694,7 @@ export default function ReportPage() {
                         </p>
 
                         {vendor.criticalGaps && vendor.criticalGaps.length > 0 && (
-                          <div className="border border-rose-500/20 bg-rose-500/5 rounded-lg p-2.5">
+                          <div className="border border-rose-500/20 bg-rose-500/5 p-2.5">
                             <p className="text-[9px] font-mono font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1">
                               Critical Gaps Identified:
                             </p>
@@ -711,7 +720,7 @@ export default function ReportPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                 {/* Cost Analysis */}
                 {session.adjudicationResult.costAnalysis && (
-                  <div className="border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl bg-white dark:bg-zinc-950/20">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-4 bg-white dark:bg-zinc-950/20">
                     <p className="text-[9px] font-mono font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase mb-3 border-b border-zinc-200 dark:border-zinc-800 pb-1.5">
                       Cost Matrix Analysis
                     </p>
@@ -748,7 +757,7 @@ export default function ReportPage() {
 
                 {/* Compliance Analysis */}
                 {session.adjudicationResult.complianceAnalysis && (
-                  <div className="border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl bg-white dark:bg-zinc-950/20">
+                  <div className="border border-zinc-200 dark:border-zinc-800 p-4 bg-white dark:bg-zinc-950/20">
                     <p className="text-[9px] font-mono font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase mb-3 border-b border-zinc-200 dark:border-zinc-800 pb-1.5 select-none">
                       Compliance Tiers
                     </p>
@@ -758,7 +767,7 @@ export default function ReportPage() {
                           <span className="text-emerald-600 dark:text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider">Full Compliance</span>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {session.adjudicationResult.complianceAnalysis.fullCompliance.map((vendor: string, vidx: number) => (
-                              <span key={vidx} className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15 px-2 py-0.5 rounded text-[10px] font-bold tracking-tight">{vendor}</span>
+                              <span key={vidx} className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15 px-2 py-0.5 text-[10px] font-bold tracking-tight">{vendor}</span>
                             ))}
                           </div>
                         </div>
@@ -768,7 +777,7 @@ export default function ReportPage() {
                           <span className="text-amber-600 dark:text-amber-400 font-mono text-[9px] font-bold uppercase tracking-wider">Partial Compliance</span>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {session.adjudicationResult.complianceAnalysis.partialCompliance.map((vendor: string, vidx: number) => (
-                              <span key={vidx} className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/15 px-2 py-0.5 rounded text-[10px] font-bold tracking-tight">{vendor}</span>
+                              <span key={vidx} className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/15 px-2 py-0.5 text-[10px] font-bold tracking-tight">{vendor}</span>
                             ))}
                           </div>
                         </div>
@@ -778,7 +787,7 @@ export default function ReportPage() {
                           <span className="text-rose-600 dark:text-rose-400 font-mono text-[9px] font-bold uppercase tracking-wider">Non-compliant</span>
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {session.adjudicationResult.complianceAnalysis.nonCompliant.map((vendor: string, vidx: number) => (
-                              <span key={vidx} className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/15 px-2 py-0.5 rounded text-[10px] font-bold tracking-tight">{vendor}</span>
+                              <span key={vidx} className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/15 px-2 py-0.5 text-[10px] font-bold tracking-tight">{vendor}</span>
                             ))}
                           </div>
                         </div>
@@ -797,7 +806,7 @@ export default function ReportPage() {
 
             {/* Adjudication Notes */}
             {session.adjudicationResult.adjudicationNotes && (
-              <div className="border border-zinc-200 dark:border-zinc-800 p-4 rounded-lg bg-zinc-50/50 dark:bg-zinc-950/20 text-xs mt-2">
+              <div className="border border-zinc-200 dark:border-zinc-800 p-4 bg-zinc-50/50 dark:bg-zinc-950/20 text-xs mt-2">
                 <p className="text-[10px] font-mono font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase mb-2 select-none">
                   Executive Summary & Notes
                 </p>
@@ -812,7 +821,7 @@ export default function ReportPage() {
 
       {/* Disclaimer Box */}
       <div
-        className="border border-rose-500/25 bg-rose-500/5 rounded-xl p-5 md:p-6 shadow-sm"
+        className="border border-rose-500/25 bg-rose-500/5 p-5 md:p-6 shadow-sm"
         role="alert"
       >
         <div className="flex items-center gap-2 mb-3 select-none">
@@ -835,7 +844,7 @@ export default function ReportPage() {
             Mandatory review by a qualified procurement officer and contractual legal counsel is required before committing to any vendor engagement or agreement.
           </p>
 
-          <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3.5 text-rose-600 dark:text-rose-400 font-bold text-xs select-none shadow-sm leading-relaxed">
+          <div className="bg-rose-500/10 border border-rose-500/20 p-3.5 text-rose-600 dark:text-rose-400 font-bold text-xs select-none shadow-sm leading-relaxed">
             ⚠ WARNING: Do not under any circumstances rely solely on this report for commercial decision-making.
           </div>
 
@@ -849,7 +858,7 @@ export default function ReportPage() {
       <div className="flex flex-col items-center justify-center gap-4 mt-8 pb-8 w-full border-t border-zinc-200 dark:border-zinc-800 pt-8 print:hidden select-none">
         <button
           onClick={() => window.print()}
-          className="inline-flex items-center gap-2.5 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer active:scale-95 duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600"
+          className="inline-flex items-center gap-2.5 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer active:scale-95 duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950 focus-visible:ring-blue-600"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
