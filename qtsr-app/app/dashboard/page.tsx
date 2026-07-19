@@ -151,45 +151,12 @@ export default function DashboardPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] pointer-events-none" style={{
           background: 'radial-gradient(ellipse at 50% 0%, rgba(239,68,68,0.08) 0%, transparent 70%)',
         }}/>
-
         <div className="relative z-10 px-6 sm:px-8 lg:px-10 xl:px-14 py-10">
-          {/* Badge + Title */}
-          <div className="flex flex-wrap items-center gap-3 mb-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
-              <span className="h-1.5 w-1.5 bg-red-500 animate-pulse" />
-              <span className="text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-red-400">Secure Gateway</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1" style={{ background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.2)' }}>
-              <span className="h-1.5 w-1.5 bg-emerald-400 animate-pulse" />
-              <span className="text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-emerald-400">Session Active</span>
-            </div>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white uppercase tracking-tight mb-2 leading-none">
-            Procurement <span style={{ color: '#ef4444' }}>Overview</span>
-          </h1>
-          <p className="text-zinc-500 text-sm mb-8 max-w-xl leading-relaxed">
-            Initialize new comparative quotation adjudication sessions and manage your full bid portfolio from a single workspace.
-          </p>
-
-          {/* ── Step-by-step Create Session Form ── */}
-          <div className="flex flex-col gap-5">
-            {/* Step indicator */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 flex items-center justify-center text-[10px] font-mono font-bold text-white" style={{ background: '#ef4444' }}>1</div>
-                <span className="text-xs font-semibold text-zinc-400">Name your session</span>
-              </div>
-              <div className="flex-1 h-px max-w-[48px]" style={{ background: 'rgba(239,68,68,0.25)' }}/>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 flex items-center justify-center text-[10px] font-mono font-bold text-zinc-700" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>2</div>
-                <span className="text-xs text-zinc-600">Upload vendor specs</span>
-              </div>
-              <div className="flex-1 h-px max-w-[48px]" style={{ background: 'rgba(255,255,255,0.05)' }}/>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 flex items-center justify-center text-[10px] font-mono font-bold text-zinc-700" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>3</div>
-                <span className="text-xs text-zinc-600">Run adjudication</span>
-              </div>
+          <div className="flex flex-col gap-6">
+            <div>
+              <h1 className="text-sm font-mono font-bold text-zinc-400 uppercase tracking-[0.25em]">
+                Create Workspace
+              </h1>
             </div>
 
             {/* Input + Button */}
