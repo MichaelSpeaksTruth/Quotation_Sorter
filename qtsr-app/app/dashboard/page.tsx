@@ -136,7 +136,7 @@ export default function DashboardPage() {
 
       {/* ══ HERO BANNER — Create Session ══════════════════════════════════════ */}
       <div
-        className="w-full relative overflow-hidden mb-8"
+        className="w-full relative overflow-hidden mb-16"
         style={{
           background: 'linear-gradient(135deg, #140303 0%, #0a0101 60%, #000 100%)',
           borderBottom: '1px solid rgba(239,68,68,0.15)',
@@ -151,7 +151,7 @@ export default function DashboardPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] pointer-events-none" style={{
           background: 'radial-gradient(ellipse at 50% 0%, rgba(239,68,68,0.08) 0%, transparent 70%)',
         }}/>
-        <div className="relative z-10 px-6 sm:px-8 lg:px-10 xl:px-14 pt-16 pb-12">
+        <div className="relative z-10 px-6 sm:px-8 lg:px-10 xl:px-14 pt-16 pb-16">
           <div className="flex flex-col gap-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
