@@ -151,12 +151,20 @@ export default function DashboardPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] pointer-events-none" style={{
           background: 'radial-gradient(ellipse at 50% 0%, rgba(239,68,68,0.08) 0%, transparent 70%)',
         }}/>
-        <div className="relative z-10 px-6 sm:px-8 lg:px-10 xl:px-14 py-10">
-          <div className="flex flex-col gap-6">
+        <div className="relative z-10 px-6 sm:px-8 lg:px-10 xl:px-14 pt-16 pb-12">
+          <div className="flex flex-col gap-8">
             <div>
-              <h1 className="text-sm font-mono font-bold text-zinc-400 uppercase tracking-[0.25em]">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[9px] font-mono font-bold text-red-400 bg-red-950/30 border border-red-900/40 px-2 py-0.5 uppercase tracking-widest rounded-sm">
+                  Workspace Initialization
+                </span>
+              </div>
+              <h1 className="text-3xl font-extrabold text-white tracking-tight leading-none uppercase">
                 Create Workspace
               </h1>
+              <p className="text-zinc-500 text-xs mt-2.5 max-w-xl leading-relaxed">
+                Initialize a new comparative quotation workspace to upload vendor sheets and execute automated adjudications.
+              </p>
             </div>
 
             {/* Input + Button */}
