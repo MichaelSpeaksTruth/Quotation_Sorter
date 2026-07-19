@@ -193,35 +193,35 @@ export default function DashboardPage() {
             </div>
 
             {/* Input + Button */}
-            <form onSubmit={handleCreateSession} className="flex flex-col sm:flex-row items-stretch gap-3 w-full max-w-2xl">
+            <form onSubmit={handleCreateSession} className="flex flex-col sm:flex-row items-stretch gap-3 w-full max-w-4xl">
               <div className="flex-1 relative">
-                <label className="block text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-zinc-500 mb-2">
-                  Session / RFQ Reference Name <span className="text-red-500">*</span>
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-zinc-400 mb-2">
+                  Session / Workspace Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Session 29 — Lab Equipment Procurement RFQ"
+                  placeholder="Enter session or workspace name..."
                   value={newSessionName}
                   onChange={(e) => setNewSessionName(e.target.value)}
-                  className="w-full px-5 py-4 text-sm text-white font-medium focus:outline-none transition-all duration-200"
+                  className="w-full px-6 py-5 text-base text-white font-medium focus:outline-none transition-all duration-200"
                   style={{
                     background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.12)',
                   }}
                   onFocus={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.6)'; }}
-                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
                   required
                 />
-                <p className="text-zinc-700 text-xs mt-1.5">
-                  Give this RFQ a clear descriptive name. This will be the workspace identifier across all reports.
+                <p className="text-zinc-500 text-xs mt-2 leading-relaxed">
+                  Name this session <strong>anything you like</strong> (e.g., your project title, purchase order number, or department) to organize your uploaded quotation sheets and reports.
                 </p>
               </div>
               <div className="flex flex-col justify-end">
-                <div className="h-[30px]" />{/* spacer for label */}
+                <div className="h-[28px]" />{/* spacer for label */}
                 <button
                   type="submit"
                   disabled={creatingSession || !newSessionName.trim()}
-                  className="px-8 py-4 text-sm font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                  className="px-10 py-5 text-base font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
                   style={{
                     background: creatingSession || !newSessionName.trim() ? 'rgba(255,255,255,0.06)' : '#ef4444',
                     color: creatingSession || !newSessionName.trim() ? '#52525b' : '#fff',
