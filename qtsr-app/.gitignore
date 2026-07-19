@@ -42,3 +42,8 @@ next-env.d.ts
 
 # firebase rtdb rules
 firebase-rtdb-rules.json
+
+# learning materials folder
+/Learning/
+Learning/
+../Learning/

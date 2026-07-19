@@ -24,22 +24,19 @@ export default function DashboardPage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
-        setUser(null); // Resolves permission denied error by unsubscribing before auth token invalidation
+        setUser(null);
         router.push("/login");
       } else {
         setUser(currentUser);
       }
     });
-
     return () => unsubscribe();
   }, [router]);
 
   // Load user's sessions
   useEffect(() => {
     if (!user) return;
-
     const userSessionsRef = ref(rtdb, `sessions/${user.uid}`);
-
     const unsubscribe = onValue(
       userSessionsRef,
       (snapshot) => {
@@ -52,7 +49,6 @@ export default function DashboardPage() {
               ...(value as Omit<Session, "id" | "userId">),
             })
           );
-          // Sort by creation date descending
           setSessions(sessionList.sort((a, b) => b.createdAt - a.createdAt));
         } else {
           setSessions([]);
@@ -64,57 +60,48 @@ export default function DashboardPage() {
         setLoading(false);
       }
     );
-
     return () => unsubscribe();
   }, [user]);
 
-  // Animated counters — roll up from 0 to target value
+  // Animated counters
   useEffect(() => {
     const activeCount = sessions.filter((s) => s.status === "open").length;
     const closedCount = sessions.filter((s) => s.status === "closed").length;
-
     let frame = 0;
-    const totalFrames = 35;
+    const totalFrames = 40;
     const timer = setInterval(() => {
       frame++;
       const progress = frame / totalFrames;
-      // Ease-out curve for smooth deceleration
       const eased = 1 - Math.pow(1 - progress, 3);
       setAnimatedActive(Math.round(eased * activeCount));
       setAnimatedClosed(Math.round(eased * closedCount));
       if (frame >= totalFrames) clearInterval(timer);
-    }, 25);
-
+    }, 22);
     return () => clearInterval(timer);
   }, [sessions]);
 
   // Staggered row visibility
   useEffect(() => {
     if (!loading && sessions.length > 0) {
-      const timer = setTimeout(() => setRowsVisible(true), 150);
+      const timer = setTimeout(() => setRowsVisible(true), 120);
       return () => clearTimeout(timer);
     }
   }, [loading, sessions]);
 
-  // Handle comparative session creation
+  // Create session
   const handleCreateSession = async (e: FormEvent) => {
     e.preventDefault();
     if (!newSessionName.trim() || !user) return;
-
     setCreatingSession(true);
     try {
       const userSessionsRef = ref(rtdb, `sessions/${user.uid}`);
       const newSessionRef = push(userSessionsRef);
-
-      const newSessionData = {
+      await set(newSessionRef, {
         title: newSessionName.trim(),
         status: "open",
         createdAt: Date.now(),
-      };
-
-      await set(newSessionRef, newSessionData);
+      });
       setNewSessionName("");
-      // Push directly to new workspace path
       router.push(`/session/${newSessionRef.key}`);
     } catch (error) {
       console.error("Error creating session:", error);
@@ -124,139 +111,245 @@ export default function DashboardPage() {
     }
   };
 
+  // ── Loading state ──────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center gap-4 font-sans text-zinc-900 dark:text-zinc-50">
-        <div className="relative w-12 h-12 flex items-center justify-center">
-          <span className="absolute w-full h-full border-4 border-zinc-200 dark:border-zinc-800 rounded-full" />
-          <span className="absolute w-full h-full border-4 border-t-blue-600 dark:border-t-blue-500 rounded-full animate-spin" />
+      <div className="w-full min-h-[60vh] flex flex-col items-center justify-center gap-5">
+        <div className="relative w-10 h-10">
+          <span className="absolute inset-0 border-2 border-zinc-800" />
+          <span className="absolute inset-0 border-2 border-t-red-500 animate-spin" />
         </div>
-        <p className="text-xs font-mono font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase animate-pulse">
-          Loading Workspace Overview...
+        <p className="text-[11px] font-mono font-bold tracking-[0.2em] text-zinc-600 uppercase animate-pulse">
+          Loading Workspace…
         </p>
       </div>
     );
   }
 
+  const activeCount  = sessions.filter(s => s.status === "open").length;
+  const closedCount  = sessions.filter(s => s.status === "closed").length;
+  const totalSessions = sessions.length;
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="w-full flex flex-col gap-5 font-sans antialiased text-zinc-100 select-none">
-      
-      {/* Header Overview Banner */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 w-full pb-4 border-b border-zinc-800 select-none">
-        <div>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white uppercase select-none leading-none">
-              Procurement Overview
-            </h1>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/40 border border-emerald-500/20 text-[9px] uppercase font-mono font-bold tracking-widest text-emerald-400 shadow-sm select-none leading-none">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Secure Gateway
+    <div className="w-full flex flex-col gap-0 select-none" style={{ fontFamily: "'Inter', sans-serif" }}>
+
+      {/* ══ HERO BANNER — Create Session ══════════════════════════════════════ */}
+      <div
+        className="w-full relative overflow-hidden mb-8"
+        style={{
+          background: 'linear-gradient(135deg, #140303 0%, #0a0101 60%, #000 100%)',
+          borderBottom: '1px solid rgba(239,68,68,0.15)',
+        }}
+      >
+        {/* Background grid */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: 'linear-gradient(rgba(239,68,68,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(239,68,68,0.04) 1px,transparent 1px)',
+          backgroundSize: '40px 40px',
+        }}/>
+        {/* Top red glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] pointer-events-none" style={{
+          background: 'radial-gradient(ellipse at 50% 0%, rgba(239,68,68,0.08) 0%, transparent 70%)',
+        }}/>
+
+        <div className="relative z-10 px-6 sm:px-8 lg:px-10 xl:px-14 py-10">
+          {/* Badge + Title */}
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <div className="flex items-center gap-1.5 px-2.5 py-1" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
+              <span className="h-1.5 w-1.5 bg-red-500 animate-pulse" />
+              <span className="text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-red-400">Secure Gateway</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1" style={{ background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.2)' }}>
+              <span className="h-1.5 w-1.5 bg-emerald-400 animate-pulse" />
+              <span className="text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-emerald-400">Session Active</span>
             </div>
           </div>
-          <p className="text-xs text-zinc-400 mt-2.5 font-medium leading-none">
-            Initialize new comparative quotation adjudication sessions and manage bid portfolios.
+
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white uppercase tracking-tight mb-2 leading-none">
+            Procurement <span style={{ color: '#ef4444' }}>Overview</span>
+          </h1>
+          <p className="text-zinc-500 text-sm mb-8 max-w-xl leading-relaxed">
+            Initialize new comparative quotation adjudication sessions and manage your full bid portfolio from a single workspace.
           </p>
+
+          {/* ── Step-by-step Create Session Form ── */}
+          <div className="flex flex-col gap-5">
+            {/* Step indicator */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 flex items-center justify-center text-[10px] font-mono font-bold text-white" style={{ background: '#ef4444' }}>1</div>
+                <span className="text-xs font-semibold text-zinc-400">Name your session</span>
+              </div>
+              <div className="flex-1 h-px max-w-[48px]" style={{ background: 'rgba(239,68,68,0.25)' }}/>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 flex items-center justify-center text-[10px] font-mono font-bold text-zinc-700" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>2</div>
+                <span className="text-xs text-zinc-600">Upload vendor specs</span>
+              </div>
+              <div className="flex-1 h-px max-w-[48px]" style={{ background: 'rgba(255,255,255,0.05)' }}/>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 flex items-center justify-center text-[10px] font-mono font-bold text-zinc-700" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>3</div>
+                <span className="text-xs text-zinc-600">Run adjudication</span>
+              </div>
+            </div>
+
+            {/* Input + Button */}
+            <form onSubmit={handleCreateSession} className="flex flex-col sm:flex-row items-stretch gap-3 w-full max-w-2xl">
+              <div className="flex-1 relative">
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-zinc-500 mb-2">
+                  Session / RFQ Reference Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Session 29 — Lab Equipment Procurement RFQ"
+                  value={newSessionName}
+                  onChange={(e) => setNewSessionName(e.target.value)}
+                  className="w-full px-5 py-4 text-sm text-white font-medium focus:outline-none transition-all duration-200"
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.6)'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  required
+                />
+                <p className="text-zinc-700 text-xs mt-1.5">
+                  Give this RFQ a clear descriptive name. This will be the workspace identifier across all reports.
+                </p>
+              </div>
+              <div className="flex flex-col justify-end">
+                <div className="h-[30px]" />{/* spacer for label */}
+                <button
+                  type="submit"
+                  disabled={creatingSession || !newSessionName.trim()}
+                  className="px-8 py-4 text-sm font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                  style={{
+                    background: creatingSession || !newSessionName.trim() ? 'rgba(255,255,255,0.06)' : '#ef4444',
+                    color: creatingSession || !newSessionName.trim() ? '#52525b' : '#fff',
+                    border: '1px solid transparent',
+                    boxShadow: (!creatingSession && newSessionName.trim()) ? '0 0 24px rgba(239,68,68,0.25)' : 'none',
+                  }}
+                >
+                  {creatingSession ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89"/>
+                      </svg>
+                      Initializing…
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
+                      </svg>
+                      Create Workspace
+                    </span>
+                  )}
+                </button>
+                <p className="text-zinc-700 text-xs mt-1.5 text-center">Press Enter or click to launch</p>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 
-      {/* Corporate Action Grid: New Session Init & Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full items-stretch">
-        
-        {/* Left: Init Session Card */}
-        <div className="lg:col-span-8 bg-zinc-900/30 border border-zinc-800 p-5 shadow-sm flex flex-col justify-between gap-4 relative hover:border-zinc-700 transition-all duration-300 group/card">
-          {/* Subtle shimmer on hover */}
-          <div className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent" style={{ animation: "shimmer-sweep 3s ease-in-out infinite" }} />
+      {/* ══ STAT CARDS ════════════════════════════════════════════════════════ */}
+      <div className="px-6 sm:px-8 lg:px-10 xl:px-14 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+
+          {/* Total */}
+          <div className="relative overflow-hidden p-6 flex flex-col gap-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <p className="text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-zinc-600">Total Sessions</p>
+            <p className="text-4xl font-extrabold text-white font-mono tabular-nums leading-none">{totalSessions}</p>
+            <p className="text-xs text-zinc-600">across all time</p>
+            <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none" style={{ background: 'radial-gradient(circle at 100% 0%, rgba(255,255,255,0.03) 0%, transparent 70%)' }}/>
           </div>
-          <div className="relative z-10">
-            <h3 className="text-xs font-extrabold uppercase tracking-widest text-zinc-500 select-none">
-              Initialize Bid Adjudication
-            </h3>
-            <p className="text-xs text-zinc-400 mt-2 font-medium leading-relaxed max-w-xl">
-              Set up a secure technical RFQ workspace. Specify a clear reference identifier to automatically import vendor quotations and audit measurement details.
+
+          {/* Active */}
+          <div className="relative overflow-hidden p-6 flex flex-col gap-2" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)' }}>
+            <p className="text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-red-500/70">Active Sessions</p>
+            <p className="text-4xl font-extrabold font-mono tabular-nums leading-none" style={{ color: '#ef4444' }}>{animatedActive}</p>
+            <p className="text-xs" style={{ color: 'rgba(239,68,68,0.45)' }}>currently open</p>
+            <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none" style={{ background: 'radial-gradient(circle at 100% 0%, rgba(239,68,68,0.08) 0%, transparent 70%)' }}/>
+          </div>
+
+          {/* Closed */}
+          <div className="relative overflow-hidden p-6 flex flex-col gap-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <p className="text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-zinc-600">Closed Sessions</p>
+            <p className="text-4xl font-extrabold text-zinc-400 font-mono tabular-nums leading-none">{animatedClosed}</p>
+            <p className="text-xs text-zinc-600">completed &amp; archived</p>
+          </div>
+
+          {/* Spec Uploaded */}
+          <div className="relative overflow-hidden p-6 flex flex-col gap-2" style={{ background: 'rgba(234,179,8,0.04)', border: '1px solid rgba(234,179,8,0.18)' }}>
+            <p className="text-[10px] font-mono font-bold uppercase tracking-[0.18em]" style={{ color: 'rgba(234,179,8,0.6)' }}>Specs Uploaded</p>
+            <p className="text-4xl font-extrabold font-mono tabular-nums leading-none" style={{ color: 'rgba(234,179,8,0.85)' }}>
+              {sessions.filter(s => s.baseRequirements).length}
             </p>
-          </div>
-
-          <form onSubmit={handleCreateSession} className="w-full max-w-xl relative z-10">
-            <div className="flex items-center bg-zinc-950/80 border border-zinc-800 focus-within:border-zinc-600 focus-within:shadow-[0_0_12px_rgba(255,255,255,0.03)] transition-all duration-300 pl-4 pr-1.5 py-1.5 w-full">
-              <svg className="w-4 h-4 text-zinc-500 shrink-0 mr-3 select-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <input
-                type="text"
-                placeholder="e.g. Session 28 - Lab Equipment RFQ"
-                value={newSessionName}
-                onChange={(e) => setNewSessionName(e.target.value)}
-                className="w-full bg-transparent text-zinc-100 text-xs font-semibold focus:outline-none placeholder:text-zinc-600"
-                required
-              />
-              <button
-                type="submit"
-                disabled={creatingSession || !newSessionName.trim()}
-                className="px-4 py-2.5 bg-white hover:bg-zinc-200 disabled:bg-zinc-900 disabled:border-zinc-800 disabled:text-zinc-600 disabled:shadow-none text-zinc-950 text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-[0.97] border border-transparent shadow-md whitespace-nowrap flex items-center justify-center ml-3 hover:shadow-lg"
-              >
-                {creatingSession ? "Initializing..." : "Create Workspace"}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Right: Quick stats */}
-        <div className="lg:col-span-4 bg-zinc-900/30 border border-zinc-800 p-5 shadow-sm flex flex-col justify-center gap-4 relative select-none hover:border-zinc-700 transition-all duration-300">
-          <h3 className="text-xs font-extrabold uppercase tracking-widest text-zinc-500 leading-none">
-            Active Portfolios
-          </h3>
-          
-          <div className="space-y-3 divide-y divide-zinc-800">
-            <div className="flex justify-between items-center pb-2.5">
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wide">Active sessions</span>
-              <span className="font-mono text-2xl font-bold leading-none text-white tabular-nums transition-all duration-300">
-                {animatedActive}
-              </span>
-            </div>
-            <div className="flex justify-between items-center pt-3 border-t border-zinc-800">
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wide">Closed sessions</span>
-              <span className="font-mono text-2xl font-bold leading-none text-zinc-400 tabular-nums transition-all duration-300">
-                {animatedClosed}
-              </span>
-            </div>
+            <p className="text-xs" style={{ color: 'rgba(234,179,8,0.4)' }}>ready for analysis</p>
+            <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none" style={{ background: 'radial-gradient(circle at 100% 0%, rgba(234,179,8,0.06) 0%, transparent 70%)' }}/>
           </div>
         </div>
       </div>
 
-      {/* Workspace Sessions List (Enterprise Data Table Layout) */}
-      <div className="w-full flex flex-col gap-3">
-        <h2 className="text-xs font-extrabold uppercase tracking-widest text-zinc-500 select-none px-1">
-          Comparative Workspaces ({sessions.length})
-        </h2>
+      {/* ══ SESSIONS TABLE ════════════════════════════════════════════════════ */}
+      <div className="px-6 sm:px-8 lg:px-10 xl:px-14">
+
+        {/* Section header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-4">
+            <div className="w-1 h-6" style={{ background: '#ef4444' }}/>
+            <div>
+              <h2 className="text-sm font-extrabold uppercase tracking-widest text-white">
+                Comparative Workspaces
+              </h2>
+              <p className="text-[10px] font-mono text-zinc-600 mt-0.5">{sessions.length} session{sessions.length !== 1 ? 's' : ''} found · click any row to open</p>
+            </div>
+          </div>
+          {sessions.length > 0 && (
+            <div className="flex items-center gap-3 text-[10px] font-mono text-zinc-600 uppercase tracking-widest">
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 bg-emerald-500 rounded-full inline-block"/>Open</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 bg-zinc-600 rounded-full inline-block"/>Closed</span>
+            </div>
+          )}
+        </div>
 
         {sessions.length === 0 ? (
-          <div className="bg-zinc-900/20 border border-dashed border-zinc-800 p-10 text-center shadow-sm flex flex-col items-center gap-3">
-            <div className="p-3 bg-zinc-950 text-zinc-500 border border-zinc-800">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          /* Empty state */
+          <div className="flex flex-col items-center justify-center py-20 gap-6" style={{ border: '1px dashed rgba(239,68,68,0.15)', background: 'rgba(239,68,68,0.02)' }}>
+            <div className="w-14 h-14 flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <svg className="w-7 h-7 text-red-500/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-zinc-200">No comparative sessions found</p>
-              <p className="text-xs text-zinc-500 mt-1.5 font-medium max-w-sm mx-auto leading-relaxed">
-                Enter a procurement session title in the workspace card above to begin technical bid analysis.
+            <div className="text-center">
+              <p className="text-base font-bold text-white mb-2">No sessions yet</p>
+              <p className="text-sm text-zinc-600 max-w-sm leading-relaxed">
+                Type a session name in the field above and click <span className="text-red-400 font-semibold">Create Workspace</span> to begin your first procurement adjudication.
               </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-mono text-zinc-700 uppercase tracking-widest animate-bounce">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+              </svg>
+              Start above
             </div>
           </div>
         ) : (
-          <div className="bg-zinc-900/20 border border-zinc-800 overflow-hidden shadow-sm">
-            
-            {/* Grid Header Row */}
-            <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-2.5 bg-zinc-950/40 border-b border-zinc-800 text-[10px] uppercase font-mono font-bold tracking-wider text-zinc-400 select-none">
-              <div className="col-span-5">Workspace Reference / Reference Name</div>
-              <div className="col-span-2">Creation Date</div>
-              <div className="col-span-2 text-center">Spec Status</div>
-              <div className="col-span-3 text-right pr-1">Actions</div>
+          /* Full table */
+          <div style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
+
+            {/* Table header */}
+            <div className="hidden md:grid grid-cols-12 gap-0 px-6 py-3" style={{ background: 'rgba(0,0,0,0.6)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="col-span-1 text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-zinc-600">#</div>
+              <div className="col-span-5 text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-zinc-600">Session / Reference Name</div>
+              <div className="col-span-2 text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-zinc-600">Created</div>
+              <div className="col-span-2 text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-zinc-600 text-center">Spec Status</div>
+              <div className="col-span-1 text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-zinc-600 text-center">State</div>
+              <div className="col-span-1 text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-zinc-600 text-right">Action</div>
             </div>
 
-            {/* Grid Items List */}
-            <div className="divide-y divide-zinc-800/60">
+            {/* Table rows */}
+            <div>
               {sessions.map((session, index) => (
                 <div
                   key={session.id}
@@ -268,67 +361,123 @@ export default function DashboardPage() {
                       router.push(`/session/${session.id}`);
                     }
                   }}
-                  className="flex flex-col md:grid md:grid-cols-12 gap-4 px-6 py-2.5 md:py-3 hover:bg-zinc-800/15 items-center transition-all duration-200 cursor-pointer group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-700 border-l-2 border-l-transparent hover:border-l-emerald-500/50"
+                  className="group relative flex flex-col md:grid md:grid-cols-12 gap-0 px-6 py-4 cursor-pointer transition-all duration-150 focus-visible:outline-none"
                   style={{
+                    borderBottom: index < sessions.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                    borderLeft: '3px solid transparent',
                     opacity: rowsVisible ? 1 : 0,
-                    transform: rowsVisible ? "translateY(0)" : "translateY(6px)",
-                    transition: `opacity 0.35s ease ${index * 0.04}s, transform 0.35s ease ${index * 0.04}s, background-color 0.2s, border-color 0.2s`,
+                    transform: rowsVisible ? 'translateY(0)' : 'translateY(8px)',
+                    transition: `opacity 0.3s ease ${index * 0.035}s, transform 0.3s ease ${index * 0.035}s, background-color 0.15s, border-color 0.15s`,
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.04)';
+                    (e.currentTarget as HTMLElement).style.borderLeftColor = 'rgba(239,68,68,0.6)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = 'transparent';
+                    (e.currentTarget as HTMLElement).style.borderLeftColor = 'transparent';
                   }}
                 >
-                  {/* Workspace Session Name (Col 5) */}
-                  <div className="col-span-5 flex items-center gap-3.5 min-w-0 w-full">
-                    <span className={`h-2 w-2 rounded-full shrink-0 border border-zinc-900 ${
-                      session.status === 'open' 
-                        ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse' 
-                        : 'bg-zinc-600'
-                    }`} title={session.status === 'open' ? 'Active Workspace' : 'Closed Session'} />
-                    
+                  {/* # */}
+                  <div className="hidden md:flex col-span-1 items-center">
+                    <span className="text-xs font-mono text-zinc-700 group-hover:text-zinc-500 transition-colors">
+                      {String(sessions.length - index).padStart(2, '0')}
+                    </span>
+                  </div>
+
+                  {/* Name */}
+                  <div className="col-span-5 flex items-center gap-3.5 min-w-0 mb-3 md:mb-0">
+                    <span className={`h-2 w-2 shrink-0 ${session.status === 'open' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-600'}`}
+                      style={{ animation: session.status === 'open' ? 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' : 'none' }}
+                    />
                     <div className="min-w-0">
-                      <h3 className="text-xs sm:text-sm font-extrabold text-zinc-200 group-hover:text-white transition-colors truncate uppercase leading-tight" title={session.title}>
+                      <h3 className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors truncate uppercase" title={session.title}>
                         {session.title}
                       </h3>
-                      <p className="text-[9px] text-zinc-600 mt-0.5 uppercase font-mono font-bold leading-none select-none group-hover:text-zinc-500 transition-colors">
-                        ID: {session.id.substring(0, 10)}...
+                      <p className="text-[9px] text-zinc-700 mt-0.5 font-mono group-hover:text-zinc-500 transition-colors">
+                        ID: {session.id.substring(0, 12)}…
                       </p>
                     </div>
                   </div>
 
-                  {/* Creation Date (Col 2) */}
-                  <div className="col-span-2 w-full md:w-auto flex justify-between md:block select-none border-t md:border-t-0 pt-2.5 md:pt-0 border-zinc-800">
-                    <span className="md:hidden text-[9px] font-bold text-zinc-500 uppercase font-mono">Created</span>
-                    <span className="text-xs font-semibold text-zinc-400 font-mono leading-none group-hover:text-zinc-300 transition-colors">
-                      {new Date(session.createdAt).toLocaleDateString("en-GB")}
+                  {/* Date */}
+                  <div className="col-span-2 flex items-center">
+                    <div>
+                      <span className="md:hidden text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-600 block mb-0.5">Created</span>
+                      <span className="text-xs font-mono text-zinc-400 group-hover:text-zinc-200 transition-colors">
+                        {new Date(session.createdAt).toLocaleDateString("en-GB")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Spec Status */}
+                  <div className="col-span-2 flex items-center md:justify-center">
+                    <div className="flex flex-col items-start md:items-center gap-1">
+                      <span className="md:hidden text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-600">Spec</span>
+                      <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 leading-none transition-all duration-200 ${
+                        session.baseRequirements
+                          ? "text-emerald-400 group-hover:text-emerald-300"
+                          : "text-amber-400 group-hover:text-amber-300"
+                      }`}
+                        style={{
+                          background: session.baseRequirements ? 'rgba(52,211,153,0.08)' : 'rgba(234,179,8,0.08)',
+                          border: session.baseRequirements ? '1px solid rgba(52,211,153,0.2)' : '1px solid rgba(234,179,8,0.2)',
+                        }}
+                      >
+                        {session.baseRequirements ? "✓ Uploaded" : "⏳ Pending"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* State */}
+                  <div className="col-span-1 flex items-center md:justify-center">
+                    <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-1 leading-none ${
+                      session.status === 'open'
+                        ? 'text-red-400'
+                        : 'text-zinc-600'
+                    }`}
+                      style={{
+                        background: session.status === 'open' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.02)',
+                        border: session.status === 'open' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(255,255,255,0.05)',
+                      }}
+                    >
+                      {session.status === 'open' ? 'Open' : 'Closed'}
                     </span>
                   </div>
 
-                  {/* Spec Status Badge (Col 2) */}
-                  <div className="col-span-2 w-full md:w-auto flex justify-between md:block md:text-center select-none border-t md:border-t-0 pt-2.5 md:pt-0 border-zinc-800">
-                    <span className="md:hidden text-[9px] font-bold text-zinc-500 uppercase font-mono">Spec Upload</span>
-                    <span className={`text-[9px] font-mono font-bold uppercase tracking-wider border px-2.5 py-0.5 leading-none inline-block transition-all duration-200 ${
-                      session.baseRequirements 
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25 group-hover:bg-emerald-500/15 group-hover:border-emerald-500/35" 
-                        : "bg-amber-500/10 text-amber-400 border-amber-500/25 group-hover:bg-amber-500/15 group-hover:border-amber-500/35"
-                    }`}>
-                      {session.baseRequirements ? "Uploaded" : "Pending"}
-                    </span>
-                  </div>
-
-                  {/* Action Link Button (Col 3) */}
-                  <div className="col-span-3 w-full md:w-auto text-right select-none border-t md:border-t-0 pt-3 md:pt-0 border-zinc-800">
-                    <span className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 border border-zinc-800 group-hover:border-zinc-600 bg-zinc-900 group-hover:bg-zinc-800 text-zinc-400 group-hover:text-white font-bold text-[10px] uppercase tracking-wider transition-all duration-200 active:scale-95 shadow-sm whitespace-nowrap opacity-50 group-hover:opacity-100 group-hover:shadow-md">
-                      Open Portal
-                      <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  {/* Action */}
+                  <div className="col-span-1 flex items-center justify-end">
+                    <span
+                      className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-widest transition-all duration-150 px-3 py-2"
+                      style={{
+                        color: 'rgba(239,68,68,0.5)',
+                        border: '1px solid rgba(239,68,68,0.15)',
+                      }}
+                    >
+                      Open
+                      <svg className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
                       </svg>
                     </span>
                   </div>
-
                 </div>
               ))}
             </div>
+
+            {/* Table footer */}
+            <div className="px-6 py-3 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.4)' }}>
+              <p className="text-[9px] font-mono text-zinc-700 uppercase tracking-widest">
+                {sessions.length} workspace{sessions.length !== 1 ? 's' : ''} · sorted by date descending
+              </p>
+              <p className="text-[9px] font-mono text-zinc-700 uppercase tracking-widest">
+                Click any row to open portal →
+              </p>
+            </div>
+
           </div>
         )}
       </div>
+
     </div>
   );
 }
