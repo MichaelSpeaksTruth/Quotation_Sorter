@@ -19,7 +19,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = "gemini-3.1-flash-lite";
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const FIREBASE_DATABASE_URL =
   process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL ||
